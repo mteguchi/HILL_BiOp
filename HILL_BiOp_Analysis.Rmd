@@ -1,0 +1,77 @@
+---
+title: "HILL Biological Opinion analysis"
+output: html_notebook
+---
+
+```{r}
+ifelse(Sys.info()[1] == 'Linux',
+       source('~/Documents/R/TomosFunctions.R'),
+       source('~/R/TomosFunctions.R'))
+
+library(tidyverse)
+library(ggplot2)
+
+```
+
+This document contains various analysis used for modeling turtle populations for the Biological Opinion on the Hawaii shallow-set longline fishery. 
+
+#Van Houtan analysis
+I'm not convinced about what Kyle did with respect to the "climate-forcing PVA". It appears that he used the standardized log anomaly as the response and explanatory variables.
+
+Looking at leatherback data first.
+```{r}
+
+Dc_nests <- read.csv(file = "data/LeatherbackAdjustedNumberNests.csv") %>%
+  filter(Year > 1984)
+PDO <- read.csv(file = "data/PDO.csv", header = FALSE, na.strings = "NaN")
+
+colnames(PDO) <- c("Year", 1:12)
+PDO$avg <- rowMeans(PDO[,2:13])
+PDO_Dc <- filter(PDO, (Year >= min(Dc_nests$Year)-22) & 
+                   (Year <= max(Dc_nests$Year)-22))
+
+UW36N <- read.csv(file = "data/UW36N_19670101_20170130_Daily_data_int.csv", 
+                  header = TRUE, na.strings = "NA")
+
+UW36N %>% filter(month > 5 & month < 9) %>%
+  group_by(year) %>%
+  summarise(UW_avg = mean(UWint)) %>%
+  mutate(log.UW_avg = log(UW_avg)) %>%
+  mutate(log.UW_avg.anom = scale(UW_avg)) -> UW36N_summer
+
+UW36N_summer_Dc <- filter(UW36N_summer, 
+                          (year >= min(Dc_nests$Year)-1) & 
+                            (year <= max(Dc_nests$Year)-1))
+
+climate.JM.lm.df <- data.frame(year = Dc_nests$Year,
+                               counts = Dc_nests$Jamursba_Medi,
+                               PDO_lag22 = PDO_Dc$avg,
+                               UW36N_UWavg = UW36N_summer_Dc$UW_avg,
+                               UW36N_log.UW_anom = UW36N_summer_Dc$log.UW_avg.anom)
+
+climate.JM.lm.df <- mutate(climate.JM.lm.df,
+                           log.counts = log(counts),
+                           log.anomaly = scale(log.counts),
+                           PDO_year = PDO_Dc$Year) %>%
+  na.omit()
+
+climate.JM.lm <- lm(log.anomaly ~ PDO_lag22 + UW36N_log.UW_anom, 
+                    data = climate.JM.lm.df)
+summary(climate.JM.lm)
+```
+
+I was expecting this sort of results... let's see what the plot shows.
+
+```{r}
+climate.JM.lm.df$fit <- predict(climate.JM.lm)
+ggplot(data = climate.JM.lm.df) +
+  geom_col(aes(x = year, y = log.anomaly)) +
+  geom_line(aes(x = year, y = PDO_lag22),
+            color = 'gray') +
+  geom_line(aes(x = year, y = fit),
+            color = 'blue')
+
+
+```
+
+
