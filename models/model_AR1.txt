@@ -1,0 +1,18 @@
+# AR(1) model
+# The BUGS book by David Lunn et al. 2013. p. 258
+# modified by T. Eguchi 16 March 2018
+
+model{
+    for (t in 2:T){
+      y[t] ~ dnorm(m[t], tau)  
+      m[t] <- c + theta * y[t-1]
+      #eps[t] <- y[t] - m[t]
+    }
+
+    m[1] <- y[1]
+    
+    theta ~  dnorm(0, 0.1)
+    c ~ dnorm(0, 0.01)
+    tau <- 1/(sigma * sigma)
+    sigma ~ dunif(0, 1000)
+}

@@ -28,40 +28,60 @@ First, data for Jamursba-Medi are analyzed.
 # get JM data first:
 data.0.JM <- read.csv('data/JM_nests.csv')
 
+# create regularly spaced time series:
+data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin, 
+                                       na.rm = T):max(data.0.JM$Year_begin, 
+                                                      na.rm = T),
+                                   each = 12),
+                        Month_begin = rep(1:12, 
+                                          max(data.0.JM$Year_begin, 
+                                              na.rm = T) - 
+                                            min(data.0.JM$Year_begin, 
+                                                na.rm = T) + 1)) %>%
+  mutate(begin_date = as.Date(paste(Year,
+                                    Month_begin,
+                                    '01', sep = "-"),
+                              format = "%Y-%m-%d"),
+         Frac.Year = Year + (Month_begin-0.5)/12) %>%
+  select(Year, begin_date, Frac.Year)
+
 # create time-duration filed (in yrs)
 # define dates with begin and end dates:
 data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
                                                 Month_begin,
                                                 '01', sep = "-"),
                                           format = "%Y-%m-%d")) %>%
-  mutate(end_day = if_else(Month_end == 1 | Month_end == 3 | Month_end == 5 |
-                             Month_end == 7 | Month_end == 8 | Month_end == 10 |
-                             Month_end == 12, 31,
-                           if_else(Month_end == 2,
+  mutate(end_day = if_else(Month_end.1 == 1 | Month_end.1 == 3 | Month_end.1 == 5 |
+                             Month_end.1 == 7 | Month_end.1 == 8 | Month_end.1 == 10 |
+                             Month_end.1 == 12, 31,
+                           if_else(Month_end.1 == 2,
                                    if_else(leap_year(Year_end) == TRUE,
                                            29, 28), 30))) %>%
-  mutate(end_date = as.Date(paste(Year_end, Month_end, end_day,
+  mutate(end_date = as.Date(paste(Year_end, Month_end.1, end_day,
                                   sep = "-"),
                             format = "%Y-%m-%d")) %>%
   mutate(cumu_days = as.numeric(end_date - begin_date[1] + 1),
          num_days = as.numeric(end_date - begin_date) + 1,
          Year = Year_begin,
          Month = Month_begin,
-         f.month = as.factor(Month),
-         f.year = as.factor(Year),
-         Frac.Year = Year + (Month-0.5)/12) %>%
-  select(-X)%>%
-  #na.omit() %>%
-  reshape::sort_df(.,vars = "Frac.Year")-> data.1.JM
-  
+         f_month = as.factor(Month),
+         f_year = as.factor(Year),
+         Nests = JM.1)   %>%
+  select(Year, Month, begin_date,
+         end_date, num_days, cumu_days,
+         f_month, f_year, 
+         Nests)  %>%  
+  na.omit() %>%
+  right_join(.,data.2.JM, by = "begin_date") %>%
+  reshape::sort_df(.,vars = "Frac.Year") -> data.1.JM
+
 ```
 
 Raw data for Jamursba-Medi indicate that data were pooled over a few months prior to 2011. These pooled data can be used later when looking at the long-term trend but not useful for filling in the more recent missing data. 
 
 ```{r}
 p.JM.all <- ggplot(data.1.JM) + 
-  geom_point(aes(x = Frac.Year, 
-                 y = Nests, size = num_days)) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
   geom_line(aes(x = Frac.Year, y = Nests)) +
   scale_x_continuous(breaks = seq(1980, 2020, 5),
                      limits = c(1980, 2020)) +
@@ -75,54 +95,14 @@ if (save.fig) ggsave(filename = 'figures/JM_all.png',
                      dpi = 600, height = 6, width = 8, units = "in")
 ```
 
-So, for this part of the analysis, i.e., filling in the recent missing data, I use data from 2011 to the most recent.
-
-```{r}
-data.1.JM.2011 <- filter(data.1.JM, Year > 2010)
-p.JM.2011 <- ggplot(data.1.JM.2011) + 
-  geom_point(aes(x = Frac.Year, 
-                 y = Nests)) + 
-  geom_line(aes(x = Frac.Year, y = Nests)) +
-  scale_x_continuous(breaks = seq(2010, 2020, 5),
-                     limits = c(2010, 2020)) +
-  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
-
-p.JM.2011
-if (save.fig) ggsave(filename = 'figures/JM_2011.png',
-                     plot = p.JM.all,
-                     dpi = 600, height = 6, width = 8, units = "in")
-
-```
-
-Take a look at the data by month:
-
-```{r warning=FALSE}
-p.JM.monthly <- ggplot(data.1.JM.2011) + 
-  geom_point(aes(x = Month, y = Nests, color = f.year)) + 
-  geom_line(aes(x = Month, y = Nests, color = f.year)) +
-  scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = 'Month', y = '# nests', 
-       title = "Jamursba-Medi", color = "Year")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12),
-        legend.position = c(0.9, 0.6))
-
-p.JM.monthly
-if (save.fig) ggsave(filename = 'figures/JM_monthly.png', 
-                     plot = p.JM.monthly,
-                     dpi = 600, height = 6, 
-                     width = 8, units = "in")
-```
 
 No data were collected in 1998. Since then at least some data were collected within each year. So, we look at the data since 1999:
 
 ```{r}
-data.1.JM.1999 <- filter(data.1.JM, YEAR > 1998)
+data.1.JM.1999 <- filter(data.1.JM, Year.y > 1998)
 p.JM.1999 <- ggplot(data.1.JM.1999) + 
-  geom_point(aes(x = Frac.Year, y = count)) + 
-  geom_line(aes(x = Frac.Year, y = count)) +
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests)) +
   scale_x_continuous(breaks = seq(1999, 2019, 5),
                      limits = c(1999, 2019)) +
   labs(x = '', y = '# nests', 
@@ -141,8 +121,8 @@ Monthly plot since 1999.
 
 ```{r warning=FALSE}
 p.JM.monthly.1999 <- ggplot(data.1.JM.1999) + 
-  geom_point(aes(x = MONTH, y = count, color = f.year)) + 
-  geom_line(aes(x = MONTH, y = count, color = f.year)) +
+  geom_point(aes(x = Month, y = Nests, color = f_year)) + 
+  geom_line(aes(x = Month, y = Nests, color = f_year)) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
   labs(x = 'Month', y = '# nests', 
        title = "Jamursba-Medi", color = "Year")  +
@@ -157,11 +137,13 @@ if (save.fig) ggsave(filename = 'figures/JM_monthly_1999.png',
                      width = 8, units = "in")
 ```
 
-Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year.  I ran time-series models to compare how they do in terms of filling in the missing data points. Here I try to fill in the missing data points using an AR(1) state-space model and data since 1999. This model has two variance and two "slope" parameters. Two variances correspond to nesting (May, June, July, August, and September; sigma.pro1) and non-nesting (sigma.pro2) seasons, whereas two slopes are for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year.  Because it takes a bit of time to run these, output has been saved as an RData file. 
+Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year.  I ran time-series models to compare how they do in terms of filling in the missing data points. 
+
+First, I try to fill in the missing data points using an AR(1) state-space model and data since 1999. This model has two variance and two "slope" parameters. Two variances correspond to nesting (May, June, July, August, and September; sigma.pro1) and non-nesting (sigma.pro2) seasons, whereas two slopes are for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year.  Because it takes a bit of time to run these, output has been saved as an RData file. 
 
 First, JAGS model for the analysis:
 ```{r}
-load("RData/SSAR1_month_JM_var_theta_1999_2018-05-03.RData")
+load("RData/SSAR1_month_JM_var_theta_1999_2018-06-06.RData")
 results.JM_SSAR1_month_var_theta$jm
 ```
 
@@ -185,24 +167,25 @@ mcmc_trace(zm.var.theta.JM.1999,
              "theta.1", "theta.2"))
 ```
 
-The observation variance parameter didn't converge so well, although the Gelman statistic was satisfactory. 
+The observation variance parameter did not converge well. 
 
 ```{r}
 mcmc_trace(zm.var.theta.JM.1999, "sigma.obs")
 ```
 
-Shows in density plot too. Not so good... but what can we do to improve? ...
+Shows in density plot too. 
 ```{r}
 mcmc_dens(zm.var.theta.JM.1999, 
           "sigma.obs")
 
 ```
 
-Ignoring the sigma.obs problem... I ook at the predicted values as a time-series plot. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed line. Although I called mode_X, they should have been median_X because they were 50 percentiles... oops. 
+I look at the predicted values as a time-series plot. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed line. Although I called mode_X, they should have been median_X because they were 50 percentiles... oops. 
 
 ```{r warning=F}
 Xs.stats <- results.JM_SSAR1_month_var_theta$Xs.stats
 ys.stats <- results.JM_SSAR1_month_var_theta$ys.stats
+ys.stats$obsY <- results.JM_SSAR1_month_var_theta$data.1$Nests
 
 p.JM.predicted.1999 <- ggplot() +
   #geom_point(data = ys.stats,
@@ -233,6 +216,17 @@ if (save.fig) ggsave(filename = 'figures/JM_predicted_1999.png',
                      dpi = 600, height = 6, 
                      width = 8, units = "in")
 ```
+
+Different lag period may be explored. Look at the autocorrelation of data at different lags:
+
+```{r}
+# extract section with no missing data:
+obs.y <- filter(results.JM_SSAR1_month_var_theta$data.1,
+                Year > 2004 & Year < 2013) %>%
+  select(Month, Nests)
+acf.JM <- acf(obs.y$Nests)
+```
+
 
 Sum within each year to find change in trend over the years.
 ```{r}

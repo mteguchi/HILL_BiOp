@@ -1,0 +1,55 @@
+# simple state space AR2 model for turtle nesting 
+# original code for AR1 was from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+
+# I think theta1 and theta2 are indistinguishable and the samples turned out
+# to be non positive definite - can't compute gelman diagnostic for convergence.
+# This probably means that AR(1) is a better pick.
+
+model{
+	for (t in 3:T){
+		# process
+        predX[t] <- theta1 * X[t-1] + theta2 * X[t-2]
+        # separate variances for winter (Oct, Nov, Dec) and non-winter
+        tau.pro[t] <- ifelse(m[t] > 9, tau.pro1, tau.pro2)
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation - not sure wht this predY does... shouldn't this be
+        # the same as X[t]? 
+		predY[t] <- X[t]
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
+    }
+
+    X[1] <- mu
+    predY[1] <- X[1]
+    y[1] ~ dnorm(X[1], tau.obs)T(0,)
+
+    X[2] <- mu
+    predY[2] <- X[2]
+    y[2] ~ dnorm(X[2], tau.obs)T(0,)
+
+    mu ~ dnorm(0, 0.01)
+    #tau.pro1 ~ scaled.gamma(100, 2)
+    sigma.pro1 ~ dunif(0, 200)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+    #sigma.pro1 <- 1/sqrt(tau.pro1)
+
+    #tau.pro2 ~ dscaled.gamma(50, 2)
+    #sigma.pro2 <- 1/sqrt(ta.pro2)
+    sigma.pro2 ~ dunif(0, 200)
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+
+    #tau.obs ~ dscaled.gamma(10, 2)
+    #sigma.obs <- 1/sqrt(tau.obs)
+    sigma.obs ~ dunif(0, 100)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta1 ~  dnorm(0, 10)
+    theta2 ~  dnorm(0, 10)
+    #phi1 ~ dnorm(0, 1)
+    #phi2 ~ dnorm(0, 10)
+}

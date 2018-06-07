@@ -1,0 +1,53 @@
+# simple state space AR2 model for turtle nesting 
+# original AR1 code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# Here I also have increasing and decreasing portions for theta1 and theta2
+
+model{
+	for (t in 4:T){
+		# process        
+        predX[t] <- theta1 * X[t-1] + theta2 * X[t-2] + theta3 * X[t-3]
+
+        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation
+		predY[t] <- X[t]
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
+    }
+
+    X[1] <- mu
+    predY[1] <- X[1]
+    y[1] ~ dnorm(X[1], tau.obs)T(0,)
+
+    X[2] <- mu
+    predY[2] <- X[2]
+    y[2] ~ dnorm(X[2], tau.obs)T(0,)
+
+    X[3] <- mu
+    predY[3] <- X[3]
+    y[3] ~ dnorm(X[3], tau.obs)T(0,)    mu ~ dnorm(0, 0.01)
+    #tau.pro1 ~ scaled.gamma(100, 2)
+    sigma.pro1 ~ dunif(0, 600)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+    #sigma.pro1 <- 1/sqrt(tau.pro1)
+
+    #tau.pro2 ~ dscaled.gamma(50, 2)
+    #sigma.pro2 <- 1/sqrt(ta.pro2)
+    sigma.pro2 ~ dunif(0, 100)
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+
+    #tau.obs ~ dscaled.gamma(10, 2)
+    #sigma.obs <- 1/sqrt(tau.obs)
+    sigma.obs ~ dunif(0, 100)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta1 ~ dnorm(0, 10)
+    theta2 ~ dnorm(0, 10)
+    theta3 ~ dnorm(0, 10)
+}

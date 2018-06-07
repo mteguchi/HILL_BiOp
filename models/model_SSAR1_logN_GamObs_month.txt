@@ -1,0 +1,45 @@
+# simple state space AR1 model for turtle nesting 
+# per Eric Ward's suggestion, put counts in the log space
+# then use Gamma or Neg Bin for observation - this is a 
+# gamma model. X should be in the log scale
+
+# As of April 6, 2018, it does not run. The error message is
+# Error in node y[2], Invalid parent values. 
+# Why is that? I needed to add T(0,) to dnorm for X[t] and mu
+# this has been fixed. 
+
+model{
+	for (t in 2:T){
+		# process
+		predX[t] <- theta * X[t-1]
+        tau.pro[t] <- ifelse(m[t] < 9 && m[t] > 4, tau.pro1, tau.pro2)
+		X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation
+		predY[t] <- X[t]
+        alpha[t] <- (X[t] * X[t]) * tau.obs
+        beta[t] <- X[t] * tau.obs
+		y[t] ~ dgamma(alpha[t], beta[t])
+    }
+
+    X[1] <- mu
+    predY[1] <- X[1]
+    alpha[1] <- (X[1] * X[1]) * tau.obs
+    beta[1] <- X[1] * tau.obs
+    y[1] ~ dgamma(alpha[1], beta[1])
+
+    mu ~ dnorm(0, 0.01)T(0,)
+    sigma.pro1 ~ dunif(0, 10)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+
+    offset ~ dnorm(0, 1)T(0,)  # suggestion by Eric Ward
+    sigma.pro2 <- sigma.pro1 + offset
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+    
+    sigma.obs ~ dunif(0, 10)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta ~  dnorm(0, 1)
+    
+}
+

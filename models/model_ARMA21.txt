@@ -1,0 +1,27 @@
+#ARMA(2, 1) from The BUGS book, p. 259
+# modified by T. Eguchi 16 March 2018
+
+model{
+	
+	#for (t in 1:T){
+	#  y[t] ~ dnorm(m[t], tau)
+	#  #yr[t] <- yr1 + t
+	#}
+    
+    for (t in 3:T){
+      y[t] ~ dnorm(m[t], tau)
+      m[t] <- c + theta[1] * y[t-1] + theta[2] * y[t-2] + phi * eps[t-1]
+      eps[t] <- y[t] - m[t]
+    }
+
+    for (i in 1:2){
+        #m[i] <- y[i] - eps[i]
+    	eps[i] ~ dnorm(0, 0.01)
+    	theta[i] ~  dnorm(0, 0.01)
+
+    }
+    phi ~ dnorm(0, 0.01)
+    c ~ dnorm(0, 0.01)
+    tau <- 1/(sigma * sigma)
+    sigma ~ dunif(0, 100)
+}

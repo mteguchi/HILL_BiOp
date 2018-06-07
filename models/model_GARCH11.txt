@@ -1,0 +1,24 @@
+# garch(1,1) model with t distribution
+# from https://sourceforge.net/p/mcmc-jags/discussion/610036/thread/968a48c0/
+
+
+model{
+  for (t in 1:T){
+    y[t] ~ dnorm(mu, tau[t])T(0,) #dt(mu, tau[t], nu)T(0,)
+    eps[t] <- y[t] - mu
+    tau[t] <- 1/h[t]
+  }
+  
+  for (t in 2:T){
+    h[t] <- omega + alpha1 * pow(eps[t-1], 2) + beta1 * h[t-1]
+  }
+  
+  zero ~ dinterval(alpha1 + beta1, 1) # to keep alpha1 + beta1 < 1
+  
+  mu ~ dnorm(0, 0.001)       # the average
+  h[1] ~ dunif(0, 0.0012)    # variance term
+  omega ~ dunif(0.00001, 0.20)  # noise intercept
+  alpha1 ~ dunif(0.0001,0.8)    # noise slope
+  beta1 ~ dunif(0.0001,0.8)     # coefficent for variance
+  #nu ~ dunif(2,50)              # T dist parameter
+}
