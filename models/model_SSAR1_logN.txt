@@ -1,0 +1,30 @@
+# simple state space AR1 model for turtle nesting 
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# This uses log normal for logged abundance. 
+
+model{
+	for (t in 2:T){
+		# process
+		predX[t] <- theta * X[t-1]
+		X[t] ~ dnorm(predX[t], tau.pro)
+
+		# observation
+		predY[t] <- X[t]
+		y[t] ~ dlnorm(X[t], tau.obs)
+    }
+
+    X[1] <- mu
+    predY[1] <- X[1]
+    y[1] ~ dlnorm(X[1], tau.obs)
+
+    mu ~ dnorm(0, 0.01)
+    sigma.pro ~ dunif(0, 200)
+    tau.pro <- 1/(sigma.pro * sigma.pro)
+
+    sigma.obs ~ dunif(0, 200)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta ~  dnorm(0, 0.01)
+    
+}
