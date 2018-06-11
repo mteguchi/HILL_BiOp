@@ -29,18 +29,12 @@ model{
     y[1] ~ dnorm(X[1], tau.obs)T(0,)
 
     mu ~ dnorm(0, 0.01)
-    #tau.pro1 ~ scaled.gamma(100, 2)
     sigma.pro1 ~ dunif(0, 600)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
-    #sigma.pro1 <- 1/sqrt(tau.pro1)
 
-    #tau.pro2 ~ dscaled.gamma(50, 2)
-    #sigma.pro2 <- 1/sqrt(ta.pro2)
     sigma.pro2 ~ dunif(0, 600)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
-    #tau.obs ~ dscaled.gamma(10, 2)
-    #sigma.obs <- 1/sqrt(tau.obs)
     sigma.obs ~ dunif(0, 200)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 

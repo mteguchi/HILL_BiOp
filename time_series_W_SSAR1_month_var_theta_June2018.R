@@ -5,10 +5,8 @@ rm(list=ls())
 
 tic <- Sys.time()
 Sys <- Sys.info()
-
 source('HILL_BiOp_functions.R')
 library(rjags)
-library(bayesplot)
 
 save.RData <- T
 save.fig <- F
@@ -16,6 +14,7 @@ save.fig <- F
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
                     n.adapt = 100000)
+
 # get JM data first:
 data.0.W <- read.csv('data/W_nests.csv')
 # create regularly spaced time series:
@@ -36,9 +35,9 @@ data.2.W <- data.frame(Year = rep(min(data.0.W$Year_begin,
   select(Year, Month_begin, begin_date, Frac.Year)
 
 data.0.W %>% mutate(begin_date = as.Date(paste(Year_begin,
-                                                Month_begin,
-                                                '01', sep = "-"),
-                                          format = "%Y-%m-%d")) %>%
+                                               Month_begin,
+                                               '01', sep = "-"),
+                                         format = "%Y-%m-%d")) %>%
   mutate(Year = Year_begin,
          Month = Month_begin,
          f_month = as.factor(Month),
@@ -53,19 +52,20 @@ data.0.W %>% mutate(begin_date = as.Date(paste(Year_begin,
             Frac.Year = Frac.Year.y,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") -> data.1.W
-  #filter(Year < 2014) -> data.1.W
+#filter(Year < 2014) -> data.1.W
 
 bugs.data <- list(y = data.1.W$Nests,
                   m = data.1.W$Month,
                   T = nrow(data.1.W))
 
-load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs')
+params <- c('theta.1', 'theta.2',
+            'sigma.pro1', 'sigma.pro2',
+            'sigma.obs', 'mu')
+load.module("dic")
+load.module("glm")
 
-jm <- jags.model(file = 'models/model_SSAR1_month_Warmon.txt',
+jm <- jags.model(file = 'models/model_SSAR1_month_var_theta_Wermon.txt',
                  data = bugs.data,
-                 #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
                  n.adapt = MCMC.params$n.adapt)
 
@@ -75,12 +75,7 @@ zm <- coda.samples(jm,
                    n.iter = MCMC.params$n.iter)
 g.diag <- gelman.diag(zm)
 
-# plot posterior densities using bayesplot functions:
-# mcmc_dens(zm, 'theta')
-# mcmc_dens(zm, 'sigma.pro')
-# mcmc_dens(zm, 'sigma.obs')
-
-# then sample y
+# then sample y and X
 params <- c(params, 'y', 'X', 'deviance')
 zm <- coda.samples(jm,
                    variable.names = params,
@@ -98,6 +93,7 @@ ys.stats$obsY <- data.1.W$Nests
 ys.stats$month <- data.1.W$Month
 ys.stats$year <- data.1.W$Year
 
+
 # extract Xs - the state model
 Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
                                                  row.names(summary.zm$quantiles)),
@@ -108,12 +104,10 @@ Xs.stats$obsY <- data.1.W$Nests
 Xs.stats$month <- data.1.W$Month
 Xs.stats$year <- data.1.W$Year
 
-Xs.year <- group_by(Xs.stats, year) %>% summarize(mode = sum(median_X),
+Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
 
-toc <- Sys.time()
-dif.time <- toc - tic
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
@@ -122,63 +116,63 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = median_X), color = "red",
+             alpha = 0.5, size = 2) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = median_X), color = "red",
+            alpha = 0.5) +
   geom_line(data = Xs.stats,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
-             alpha = 0.5) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
-            alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
-             alpha = 0.5)+
-  geom_line(data = ys.stats,
-             aes(x = time, y = obsY), color = "green",
              alpha = 0.5) +
-  labs(x = '', y = '# nests')  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
+  labs(title = '', x = '', y = "Nest counts")
 
+toc <- Sys.time()
+dif.time <- toc - tic
 
-# results.Warmon_SSAR1_month_To2013 <- list(data.1 = data.1.W,
-#                                        bugs.data = bugs.data,
-#                                        summary.zm = summary.zm,
-#                                        Xs.stats = Xs.stats,
-#                                        Xs.year = Xs.year,
-#                                        ys.stats = ys.stats,
-#                                        zm = zm,
-#                                        tic = tic,
-#                                        toc = toc,
-#                                        dif.time = dif.time,
-#                                        Sys = Sys,
-#                                        MCMC.params = MCMC.params,
-#                                        g.diag = g.diag,
-#                                        jm = jm)
-
-results.Warmon_SSAR1_month_all <- list(data.1 = data.1.W,
-                                       bugs.data = bugs.data,
-                                       summary.zm = summary.zm,
-                                       Xs.stats = Xs.stats,
-                                       Xs.year = Xs.year,
-                                       ys.stats = ys.stats,
-                                       zm = zm,
-                                       tic = tic,
-                                       toc = toc,
-                                       dif.time = dif.time,
-                                       Sys = Sys,
-                                       MCMC.params = MCMC.params,
-                                       g.diag = g.diag,
-                                       jm = jm)
-
+results.W_SSAR1_month_var_theta <- list(data.1 = data.1.W,
+                                        bugs.data = bugs.data,
+                                        summary.zm = summary.zm,
+                                        Xs.stats = Xs.stats,
+                                        Xs.year = Xs.year,
+                                        ys.stats = ys.stats,
+                                        zm = zm,
+                                        tic = tic,
+                                        toc = toc,
+                                        dif.time = dif.time,
+                                        Sys = Sys,
+                                        MCMC.params = MCMC.params,
+                                        g.diag = g.diag,
+                                        jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1_month_Warmon_all.png',
-         dpi = 600)
+         filename = 'figures/predicted_counts_SSAR1_month_var_theta_Warmon_all.png',
+         height = 6, width = 8, units = "in", dpi = 600)
 
 if (save.RData)
-  #save(results.Warmon_SSAR1_month_To2013,
-  #     file = paste0('RData/SSAR1_month_W_all_', Sys.Date(), '.RData'))
-  save(results.Warmon_SSAR1_month_all,
-       file = paste0('RData/SSAR1_month_W_all_', Sys.Date(), '.RData'))
+  save(results.W_SSAR1_month_var_theta,
+       file = paste0('RData/SSAR1_month_W_var_theta_all_',
+                     Sys.Date(), '.RData'))
+
+
+# plot posterior densities using bayesplot functions:
+# get the ggplot2 base theme:
+
+# base_theme <- ggplot2::theme_get()
+# library(bayesplot)
+#
+# # set back to the base theme:
+# ggplot2::theme_set(base_theme)
+#
+# mcmc_dens(zm, c('theta.1', 'theta.2'))
+# #mcmc_trace(zm, 'theta')
+# #mcmc_dens(zm, 'phi1')
+# #mcmc_dens(zm, 'phi2')
+# #mcmc_trace(zm, 'phi2')
+# mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
+# #mcmc_dens(zm, 'sigma.pro2')
+# #mcmc_trace(zm, 'sigma')
+# #mcmc_dens(zm, 'sigma.obs')
