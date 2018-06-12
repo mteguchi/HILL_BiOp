@@ -1,12 +1,20 @@
 ---
 title: "Nest count estimation Wermon"
-output: html_notebook
+output: html_document
 ---
 #Wermon
 ```{r echo=FALSE}
 rm(list=ls())
 source('HILL_BiOp_functions.R')
+base_theme <- ggplot2::theme_get()
 
+save.fig <- T
+
+library(bayesplot)
+library(mgcv)
+
+# set back to the base theme:
+ggplot2::theme_set(base_theme)
 ```
 
 Moving on to the Wermon dataset.
@@ -98,7 +106,7 @@ if (save.fig) ggsave(filename = 'figures/W_monthly.png',
 p.W.monthly
 ```
 
-There are summer and winter peaks: higher values are found between May and September, and between October and April. 2003, 2004 and 2005 seem to be outliers with respect to within-year trend, so as 2015. So, I remove them.
+There are summer and winter peaks: higher values are found in June, July, August, November, December, January, and February.  2003, 2004 and 2005 seem to be outliers with respect to within-year trend, so as 2015. So, I remove them.
 
 ```{r}
 data.1.W %>% filter(Year.y > 2005 & Year.y != 2015) -> data.1.W.2006
@@ -136,24 +144,24 @@ if (save.fig) ggsave(filename = 'figures/W_log_count.png',
 p.W.log.count
 ```
 
-Because of the large number of missing data, I fit time-series models up to 2013 (six missing values in 2013). First, fit the entire data up to 2013 using two variance terms; one for March, April, September and October and another for the rest.
+First, the entire data are fit with the model with two variance terms; one for low count month, i.e., March, April, September and October, and another for the rest. Results are stored in a .RData file. zm is the posterior samples, Xs.stats.W is the estimated values of the process model, and ys.stats.W is the data. 
 
 ```{r}
-load("RData/SSAR1_month_W_all_2018-06-07.RData")
-zm.W <- results.Warmon_SSAR1_month_all$zm
-Xs.stats.W <- results.Warmon_SSAR1_month_all$Xs.stats
-ys.stats.W <- results.Warmon_SSAR1_month_all$ys.stats
+load("RData/SSAR1_month_W_all_2018-06-12.RData")
+zm.W_all <- results.Warmon_SSAR1_month_all$zm
+Xs.stats.W_all <- results.Warmon_SSAR1_month_all$Xs.stats
+ys.stats.W_all <- results.Warmon_SSAR1_month_all$ys.stats
 # Gelman-diagnostic seems okay.
 #results.Warmon_SSAR1_month_To2013$g.diag
 ```
 
-The model has two process taus, where tau.pro1 is for March, April, September and October and tau.pro2 is for the rest. These two groups correspond to high and low numbers, respectively. 
+The JAGS model for this analysis is in the following. jm is the JAGS model as it was compiled during the run. 
 
 ```{r}
 results.Warmon_SSAR1_month_all$jm
 ```
 
-And data are here:
+And the data are here. y is the observed nests, m is months, and T is the length of the time series. Note that the initial large count (1797) is included in this analysis. 
 
 ```{r}
 results.Warmon_SSAR1_month_all$bugs.data
@@ -164,20 +172,23 @@ Gelman diagnostic for convergence checking:
 results.Warmon_SSAR1_month_all$g.diag
 ```
 
+It doesn't look too bad. 
 
-The posterior of the process parameters look like these:
-
-```{r}
-mcmc_dens(zm.W, c("sigma.pro1", "sigma.pro2", "theta", "sigma.obs"))
-```
-
-And the trace.
+The posterior of the process parameters look like these. First the densities. 
 
 ```{r}
-mcmc_trace(zm.W, c("sigma.pro1", "sigma.pro2", "theta", "sigma.obs"))
+mcmc_dens(zm.W_all, c("sigma.pro1", "sigma.pro2", "theta", "sigma.obs"))
 ```
 
-Posterior on observation standard deviation doesn't look great. 
+
+The standard deviation of the lower count months (sigma.pro1) is a lot smaller (mean = ```r signif(results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.pro1',1], digits = 3)```, SD = ```r results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.pro1',2]```) than the other (sigma.pro2, mean = ```r signif(results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.pro2',1], digits = 3)```, SD = ```r signif(results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.pro2', 2], digits = 3)```). Theta is the "slope" parameter for the AR process. sigma.obs is the standard deviation of the observation (mean = ```r signif(results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.obs',1], digits = 3)```, SD = ```r signif(results.Warmon_SSAR1_month_all$summary.zm$statistics['sigma.obs',2], digits = 3)```), which had a long tail and not-so-smooth posterior. 
+
+Trace plots show how sigma.obs did not converge so well, compared with the other three parameters. 
+
+```{r}
+mcmc_trace(zm.W_all, c("sigma.pro1", "sigma.pro2", "theta", "sigma.obs"))
+```
+
 
 Then look at the series including the predicted ones. 
 ```{r}
@@ -186,22 +197,22 @@ p.W.predicted.var <- ggplot() +
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats.W,
+  geom_point(data = Xs.stats.W_all,
              aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all,
             aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
-  geom_point(data = ys.stats.W,
+  geom_point(data = ys.stats.W_all,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)+
-  geom_line(data = ys.stats.W,
+  geom_line(data = ys.stats.W_all,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
   labs(x = '', y = '# nests', title = "Wermon")  +
@@ -217,18 +228,31 @@ p.W.predicted.var
 
 ```
 
-Seemed to fit fairly well. Larger predicted numbers for 2014 and 2015 may be because of the earlier years, say before 2004? Before moving onto a different dataset, I tried the two-theta two-tau model as in JM.
+Red dots are the estimated values, green dots are the observed values, dashed lines are the 95% credible intervals. Seemed to fit fairly well. 
 
 ```{r}
-load("RData/SSAR1_month_W_var_theta_all_2018-06-11.RData")
-zm.W <- results.W_SSAR1_month_var_theta$zm
-Xs.stats.W <- results.W_SSAR1_month_var_theta$Xs.stats
-ys.stats.W <- results.W_SSAR1_month_var_theta$ys.stats
+dif.Xy_all <- sum((na.omit(Xs.stats.W_all$median_X - ys.stats.W_all$obsY))^2)
+
+dif.Xy_all
+```
+
+The squared sum of differences between observed and predicted is ```r signif(dif.Xy_all, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all$median_X - ys.stats.W_all$obsY))``` data points. 
+
+I also tried the two-theta two-tau model as it was used for data from JM.
+
+```{r}
+#rm(list = c("results.Warmon_SSAR1_month_all"))
+load("RData/SSAR1_month_W_var_theta_all_2018-06-12.RData")
+zm.W_all2 <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W_all2 <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W_all2 <- results.W_SSAR1_month_var_theta$ys.stats
 # Gelman-diagnostic seems okay.
 #results.Warmon_SSAR1_month_To2013$g.diag
 ```
 
-The model has two process taus, where tau.pro1 is for March, April, September and October and tau.pro2 is for the rest. These two groups correspond to high and low numbers, respectively. 
+In addition to the two taus as in the previous model, it has two "slope" parameters: one (theta.1) is for May, June, November, and December (increasing months) and the other (theta.2) is for the rest.  
+
+The JAGS model is the following:
 
 ```{r}
 results.W_SSAR1_month_var_theta$jm
@@ -245,22 +269,24 @@ Gelman diagnostic for convergence checking:
 results.W_SSAR1_month_var_theta$g.diag
 ```
 
+According to this convergence diagnostic, it converged better than the previous model. 
 
-The posterior of the process parameters look like these:
+The posterior densities look like the following:
 
 ```{r}
-mcmc_dens(zm.W, c("sigma.pro1", "sigma.pro2", 
+mcmc_dens(zm.W_all2, c("sigma.pro1", "sigma.pro2", 
                   "theta.1", "theta.2", "mu", "sigma.obs"))
 ```
 
-And the trace.
+As they were in the previous model, the standard deviation of the lower count months is a lot smaller (mean = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.pro1',1], digits = 3)```, SD = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.pro1',2], digits = 3)```) than the other (mean = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.pro2',1], digits = 3)```, SD = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.pro2', 2], digits = 3)```). The theta parameters, however, looked like they overlapped (theta.1: mean = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['theta.1', 1], digits = 3)```, SD = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['theta.1', 2], digits = 3)```, theta.2: mean = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['theta.2', 1], digits = 3)```, SD = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['theta.2', 2], digits = 3)```).  As it was in the previous model, sigma.obs did not look like it converged as well as for the other parameters (mean = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.obs',1], digits = 3)```, SD = ```r signif(results.W_SSAR1_month_var_theta$summary.zm$statistics['sigma.obs',2], digits = 3)```), which had a long tail and not-so-smooth posterior. 
+
+Trace plots of these parameters look like the following.
 
 ```{r}
-mcmc_trace(zm.W, c("sigma.pro1", "sigma.pro2", 
+mcmc_trace(zm.W_all2, c("sigma.pro1", "sigma.pro2", 
                   "theta.1", "theta.2", "mu", "sigma.obs"))
 ```
 
-Posterior on observation standard deviation doesn't look great. Also, looking at the posteriors on theta.1 and theta.2, they overlap quite a bit so probably not worth splitting the parameter. 
 
 Look at the series including the predicted ones. 
 ```{r}
@@ -269,22 +295,22 @@ p.W.predicted.var <- ggplot() +
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all2,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all2,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats.W,
+  geom_point(data = Xs.stats.W_all2,
              aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
-  geom_line(data = Xs.stats.W,
+  geom_line(data = Xs.stats.W_all2,
             aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
-  geom_point(data = ys.stats.W,
+  geom_point(data = ys.stats.W_all2,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)+
-  geom_line(data = ys.stats.W,
+  geom_line(data = ys.stats.W_all2,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
   labs(x = '', y = '# nests', title = "Wermon")  +
@@ -300,16 +326,24 @@ p.W.predicted.var
 
 ```
 
-Results don't look any different from before... 
-
-So, take out before 2004 and see how that fits.
+Results don't look any different from before... but the credible intervals seem to be wider for 2014 - 2016. 
 
 ```{r}
-load("RData/SSAR1_month_W_2004_2018-06-11.RData")
+dif.Xy_all2 <- sum((na.omit(Xs.stats.W_all2$median_X - ys.stats.W_all2$obsY))^2)
+dif.Xy_all2
+```
 
-zm.W2 <- results.Warmon_SSAR1_month_2004$zm
-Xs.stats.W2 <- results.Warmon_SSAR1_month_2004$Xs.stats
-ys.stats.W2 <- results.Warmon_SSAR1_month_2004$ys.stats
+The squared sum of differences between observed and predicted is ```r signif(dif.Xy_all2, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all2$median_X - ys.stats.W_all2$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. 
+
+Next, I looked at whether or not the first few large data points and many missing data points may be affecting the predictions at later years. So, I took out before 2004 and see how that fits. I used the one-theta model.
+
+```{r}
+#rm(list = c("results.W_SSAR1_month_var_theta"))
+load("RData/SSAR1_month_W_2004_2018-06-12.RData")
+
+zm.W_2004 <- results.Warmon_SSAR1_month_2004$zm
+Xs.stats.2004 <- results.Warmon_SSAR1_month_2004$Xs.stats
+ys.stats.2004 <- results.Warmon_SSAR1_month_2004$ys.stats
 ```
 
 Confirm the model is still the same.
@@ -323,28 +357,32 @@ And the data:
 results.Warmon_SSAR1_month_2004$bugs.data
 ```
 
+
 Gelman diagnostic:
 
 ```{r}
 results.Warmon_SSAR1_month_2004$g.diag
 ```
 
-Convergence seemed to reach fine. The process parameters. 
+According to the Gelman diagnostic, convergence was reached for these parameters. 
+
+Posterior densities of the model parameters:
 
 ```{r}
-mcmc_trace(zm.W2, c("sigma.pro1", "sigma.pro2",
+mcmc_trace(zm.W_2004, c("sigma.pro1", "sigma.pro2",
                     "theta", "sigma.obs"))
 ```
 
+None of them look great here... I don't understand why they become so horrible when just a few data points were taken out. 
 
 And the density plots.
 
 ```{r}
-mcmc_dens(zm.W2, c("sigma.pro1", "sigma.pro2",
+mcmc_dens(zm.W_2004, c("sigma.pro1", "sigma.pro2",
                    "theta", "sigma.obs"))
 ```
 
-sigma.pro1, SD for the low count months (March, April, September, and October), is smaller than when the entire data were used. The posterior for the SD of observation model (sigma.obs) looks okay.  
+sigma.pro1, SD for the low count months (March, April, September, and October), did not converge well and was smaller than when the entire data were used (mean = ```r signif(results.Warmon_SSAR1_month_2004$summary.zm$statistics['sigma.pro1',1], digits = 3)``` and SD = ```r signif(results.Warmon_SSAR1_month_2004$summary.zm$statistics['sigma.pro1', 2], digits = 3)```). The posterior for the SD of observation model (sigma.obs) looks a lot better than the previous models and the distribution is over larger values (mean = ```r signif(results.Warmon_SSAR1_month_2004$summary.zm$statistics['sigma.obs',1], digits = 3)``` and SD = ```r signif(results.Warmon_SSAR1_month_2004$summary.zm$statistics['sigma.obs', 2], digits = 3)```)  
 
 Predictions series look like this.
 
@@ -354,22 +392,22 @@ p.W.predicted.var.2004 <- ggplot() +
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2004,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2004,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats.W2,
+  geom_point(data = Xs.stats.2004,
              aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2004,
             aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
-  geom_point(data = ys.stats.W2,
+  geom_point(data = ys.stats.2004,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)+
-  geom_line(data = ys.stats.W2,
+  geom_line(data = ys.stats.2004,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
   labs(x = '', y = '# nests', title = "Wermon")  +
@@ -385,10 +423,19 @@ p.W.predicted.var.2004
 
 The crediblel intervals for the missing data look better than the last run. But... I don't understand why the median of predicted values don't match the observed in this case... are they skewed distributions? So, the means may match with the observed?
 
+Results don't look any different from before... but the credible intervals seem to be wider for 2014 - 2016. 
+
 ```{r}
-summary.zm.W2 <- results.Warmon_SSAR1_month_2004$summary.zm
-Xs.stats.W2$mean_X <- summary.zm.W2$statistics[grep(pattern = "X[/[]", 
-                                     row.names(summary.zm.W2$statistics)), 
+dif.Xy_2004 <- sum((na.omit(Xs.stats.2004$median_X - ys.stats.2004$obsY))^2)
+dif.Xy_2004
+```
+
+The squared sum of differences between observed and predicted is ```r signif(dif.Xy_2004, digits = 3)``` where there were ```r length(na.omit(Xs.stats.2004$median_X - ys.stats.2004$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. 
+
+```{r}
+summary.zm.W_2004 <- results.Warmon_SSAR1_month_2004$summary.zm
+Xs.stats.2004$mean_X <- summary.zm.W_2004$statistics[grep(pattern = "X[/[]", 
+                                     row.names(summary.zm.W_2004$statistics)), 
                                 "Mean"]
 ```
 
@@ -396,7 +443,7 @@ Add the means to the plot:
 
 ```{r}
 p.W.predicted.var.2004 <- p.W.predicted.var.2004 +
-  geom_point(data = Xs.stats.W2,
+  geom_point(data = Xs.stats.2004,
              aes(x = time, y = mean_X), 
              color = "red", shape = 5,
              alpha = 0.5)
@@ -407,17 +454,54 @@ p.W.predicted.var.2004 <- p.W.predicted.var.2004 +
 p.W.predicted.var.2004
 ```
 
-That was not the case... Means and Medians are pretty much on top of each other for the observed data. I don't know why the Warmon dataset is behaving differently from the J-M dataset... Probably because the observation standard deviation is fairly large? 
+Means and Medians are pretty much on top of each other for the observed data. Is it possible that data are different? A quick look:
 
-Now, how about including the two and a half years of missing data and more recent data? 
-
-How about from 2006?
 ```{r}
-load("RData/SSAR1_month_W_2006_2018-06-11.RData")
+bugs.data.short <- results.Warmon_SSAR1_month_2004$bugs.data
+Xs.stats.short <- Xs.stats.2004
+ys.stats.short <- ys.stats.2004
 
-zm.W2 <- results.Warmon_SSAR1_month_2006$zm
-Xs.stats.W2 <- results.Warmon_SSAR1_month_2006$Xs.stats
-ys.stats.W2 <- results.Warmon_SSAR1_month_2006$ys.stats
+df.short <- data.frame(time = Xs.stats.short$time,
+                       obsY = Xs.stats.short$obsY,
+                       median_X = Xs.stats.short$median_X,
+                       bugs.Y = bugs.data.short$y)
+
+#rm(list = c("results.Warmon_SSAR1_month_2004"))
+load("RData/SSAR1_month_W_all_2018-06-12.RData")
+#zm.W <- results.Warmon_SSAR1_month_all$zm
+bugs.data.long <- results.Warmon_SSAR1_month_all$bugs.data
+Xs.stats.long <- results.Warmon_SSAR1_month_all$Xs.stats
+ys.stats.long <- results.Warmon_SSAR1_month_all$ys.stats
+df.long <- data.frame(time = Xs.stats.long$time,
+                       obsY = Xs.stats.long$obsY,
+                       median_X = Xs.stats.long$median_X,
+                       bugs.Y = bugs.data.long$y)
+
+ggplot() + 
+  geom_point(data = df.short, 
+             aes(x = time, y = obsY),
+             color = "red", size = 4) + 
+  geom_point(data = df.short,
+             aes(x = time, y = bugs.Y),
+             color = "yellow", size = 3) + 
+  geom_point(data = df.long,
+             aes(x = time, y = obsY),
+             color = "green", size = 2) + 
+  geom_point(data = df.long,
+             aes(x = time, y = bugs.Y),
+             color = "blue", size = 1)  
+  
+```
+
+So... the data are identical for 2004 on. The first few years make that much difference? 
+
+Now, how about including starting from 2006?
+```{r}
+load("RData/SSAR1_month_W_2006_2018-06-12.RData")
+
+zm.W_2006 <- results.Warmon_SSAR1_month_2006$zm
+Xs.stats.2006 <- results.Warmon_SSAR1_month_2006$Xs.stats
+ys.stats.2006 <- results.Warmon_SSAR1_month_2006$ys.stats
 ```
 
 Confirm the model is still the same.
@@ -437,10 +521,10 @@ Gelman diagnostic:
 results.Warmon_SSAR1_month_2006$g.diag
 ```
 
-Convergence seemed to reach fine. The process parameters. 
+Convergence seemed to reach fine. Posterior traces. 
 
 ```{r}
-mcmc_trace(zm.W2, c("sigma.pro1", "sigma.pro2",
+mcmc_trace(zm.W_2006, c("sigma.pro1", "sigma.pro2",
                     "theta", "sigma.obs"))
 ```
 
@@ -448,11 +532,11 @@ mcmc_trace(zm.W2, c("sigma.pro1", "sigma.pro2",
 And the density plots.
 
 ```{r}
-mcmc_dens(zm.W2, c("sigma.pro1", "sigma.pro2",
+mcmc_dens(zm.W_2006, c("sigma.pro1", "sigma.pro2",
                    "theta", "sigma.obs"))
 ```
 
-sigma.pro1, SD for the low count months (March, April, September, and October), is smaller than when the entire data were used. The posterior for the SD of observation model (sigma.obs) looks okay.  
+sigma.pro1, SD for the low count months (March, April, September, and October), is smaller than when the entire data were used (mean = ```r signif(results.Warmon_SSAR1_month_2006$summary.zm$statistics['sigma.pro1',1], digits = 3)``` and SD = ```r signif(results.Warmon_SSAR1_month_2006$summary.zm$statistics['sigma.pro1', 2], digits = 3)```). The posterior for the SD of observation model (sigma.obs) looks okay (mean = ```r signif(results.Warmon_SSAR1_month_2006$summary.zm$statistics['sigma.obs',1], digits = 3)``` and SD = ```r signif(results.Warmon_SSAR1_month_2006$summary.zm$statistics['sigma.obs', 2], digits = 3)```)  
 
 Predictions series look like this.
 
@@ -462,22 +546,22 @@ p.W.predicted.var.2006 <- ggplot() +
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2006,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2006,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats.W2,
+  geom_point(data = Xs.stats.2006,
              aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
-  geom_line(data = Xs.stats.W2,
+  geom_line(data = Xs.stats.2006,
             aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
-  geom_point(data = ys.stats.W2,
+  geom_point(data = ys.stats.2006,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)+
-  geom_line(data = ys.stats.W2,
+  geom_line(data = ys.stats.2006,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
   labs(x = '', y = '# nests', title = "Wermon")  +
@@ -491,12 +575,17 @@ if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006.png',
 p.W.predicted.var.2006
 ```
 
-The crediblel intervals for the missing data look better than the last run. But... I don't understand why the median of predicted values don't match the observed in this case... are they skewed distributions? So, the means may match with the observed?
+```{r}
+dif.Xy_2006 <- sum((na.omit(Xs.stats.2006$median_X - ys.stats.2006$obsY))^2)
+dif.Xy_2006
+```
+
+The squared sum of differences between observed and predicted is ```r signif(dif.Xy_2006, digits = 3)``` where there were ```r length(na.omit(Xs.stats.2006$median_X - ys.stats.2006$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. The crediblel intervals for the missing data, however, look better than the last run. 
 
 ```{r}
-summary.zm.W2 <- results.Warmon_SSAR1_month_2006$summary.zm
-Xs.stats.W2$mean_X <- summary.zm.W2$statistics[grep(pattern = "X[/[]", 
-                                     row.names(summary.zm.W2$statistics)), 
+summary.zm.W_2006 <- results.Warmon_SSAR1_month_2006$summary.zm
+Xs.stats.2006$mean_X <- summary.zm.W_2006$statistics[grep(pattern = "X[/[]", 
+                                     row.names(summary.zm.W_2006$statistics)), 
                                 "Mean"]
 ```
 
@@ -504,7 +593,7 @@ Add the means to the plot:
 
 ```{r}
 p.W.predicted.var.2006 <- p.W.predicted.var.2006 +
-  geom_point(data = Xs.stats.W2,
+  geom_point(data = Xs.stats.2006,
              aes(x = time, y = mean_X), 
              color = "red", shape = 5,
              alpha = 0.5)
@@ -515,14 +604,15 @@ p.W.predicted.var.2006 <- p.W.predicted.var.2006 +
 p.W.predicted.var.2006
 ```
 
+Because using the "2006" data and the two-tau one-theta model minizes the credible intervals among all the datasets and models, I decided to use this combination for filling in the missing data. 
 
 ```{r}
 # sum posterior samples to get annual counts from monthly estimates:
-yrs <- as.matrix(c(min(Xs.stats.W2$year):max(Xs.stats.W2$year)))
+yrs <- as.matrix(c(min(Xs.stats.2006$year):max(Xs.stats.2006$year)))
 X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
                                  FUN = sum.posterior, 
-                                 Xs.stats = Xs.stats.W2, 
-                                 zm = zm.W2),
+                                 Xs.stats = Xs.stats.2006, 
+                                 zm = zm.W_2006),
                            FUN = function(x) rowSums(x$samples))
 
 Xs.year.W2 <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
@@ -532,7 +622,7 @@ Xs.year.W2 <- as.data.frame(matrix(unlist(lapply(X.posteriors.all,
 
 colnames(Xs.year.W2) <- c("low", "total", "high")
 Xs.year.W2 <-mutate(Xs.year.W2, 
-                    year = c(min(Xs.stats.W2$year):max(Xs.stats.W2$year)))
+                    year = c(min(Xs.stats.2006$year):max(Xs.stats.2006$year)))
 
 # Xs.year.W2[Xs.year.W2$year == 2014 | Xs.year.W2$year == 2015, 
 #            c("total", "low", "high")] <- NA
@@ -595,7 +685,7 @@ fitTo2011.W <- glm(log(total) ~ year.0,
 summary(fitTo2011.W)
 ```
 
-Up to 2011, the rate of decline is 11.7%/year. This is a bit diffrent from Tapilatu et al. (2013), where the authors claimed -11.6%. Probably, the data that went into the analysis were a bit different. In the paper, they stated that "There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011."  The numbers are a bit different from what I have here.
+Up to 2011, the rate of decline is ```r signif(coef(fitTo2011.W)[2], digits = 3)```%/year. This is a bit diffrent from Tapilatu et al. (2013), where the authors claimed -11.6%. Probably, the data that went into the analysis were a bit different. In the paper, they stated that "There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011."  The numbers are a bit different from what I have here.
 
 ```{r}
 dataTo2011.W
@@ -657,7 +747,7 @@ fitTo2017.W <- glm(log(total) ~ year.0,
 summary(fitTo2017.W)
 ```
 
-The rate of decline is only about 7%/year now. Of course, that's looking just the median values. 
+The rate of decline is only about ```r signif(coef(fitTo2017.W)[2], digits = 3)``` %/year now. Of course, that's looking just the median values. 
 
 ```{r}
 new.data.2017.W <- data.frame(year.0 = dataTo2017.W$year.0)

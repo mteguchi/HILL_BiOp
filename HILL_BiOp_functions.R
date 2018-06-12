@@ -12,8 +12,6 @@ library(ggplot2)
 library(tidyverse)
 library(lubridate)
 
-save.fig <- F
-
 sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   Xs.stats %>%
     mutate(var.name = rownames(Xs.stats)) %>%
