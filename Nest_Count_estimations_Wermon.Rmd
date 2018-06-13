@@ -1,6 +1,6 @@
 ---
 title: "Nest count estimation Wermon"
-output: html_document
+output: html_notebook
 ---
 #Wermon
 ```{r echo=FALSE}
@@ -236,7 +236,7 @@ dif.Xy_all <- sum((na.omit(Xs.stats.W_all$median_X - ys.stats.W_all$obsY))^2)
 dif.Xy_all
 ```
 
-The squared sum of differences between observed and predicted is ```r signif(dif.Xy_all, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all$median_X - ys.stats.W_all$obsY))``` data points. 
+The sum of squared differences between observed and predicted is ```r signif(dif.Xy_all, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all$median_X - ys.stats.W_all$obsY))``` data points. 
 
 I also tried the two-theta two-tau model as it was used for data from JM.
 
@@ -268,8 +268,6 @@ Gelman diagnostic for convergence checking:
 ```{r}
 results.W_SSAR1_month_var_theta$g.diag
 ```
-
-According to this convergence diagnostic, it converged better than the previous model. 
 
 The posterior densities look like the following:
 
@@ -333,7 +331,7 @@ dif.Xy_all2 <- sum((na.omit(Xs.stats.W_all2$median_X - ys.stats.W_all2$obsY))^2)
 dif.Xy_all2
 ```
 
-The squared sum of differences between observed and predicted is ```r signif(dif.Xy_all2, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all2$median_X - ys.stats.W_all2$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. 
+The sum of squared differences between observed and predicted is ```r signif(dif.Xy_all2, digits = 3)``` where there were ```r length(na.omit(Xs.stats.W_all2$median_X - ys.stats.W_all2$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. 
 
 Next, I looked at whether or not the first few large data points and many missing data points may be affecting the predictions at later years. So, I took out before 2004 and see how that fits. I used the one-theta model.
 
@@ -373,7 +371,7 @@ mcmc_trace(zm.W_2004, c("sigma.pro1", "sigma.pro2",
                     "theta", "sigma.obs"))
 ```
 
-None of them look great here... I don't understand why they become so horrible when just a few data points were taken out. 
+None of them look great here... I don't understand why they are worse when just a few extreme data points were taken out. 
 
 And the density plots.
 
@@ -421,79 +419,72 @@ if (save.fig) ggsave(filename = 'figures/W_predicted_var_2004.png',
 p.W.predicted.var.2004
 ```
 
-The crediblel intervals for the missing data look better than the last run. But... I don't understand why the median of predicted values don't match the observed in this case... are they skewed distributions? So, the means may match with the observed?
-
-Results don't look any different from before... but the credible intervals seem to be wider for 2014 - 2016. 
+The crediblel intervals for the missing data in 2014 and 2015 look better than the last run. But... I don't understand why the median of predicted values don't match the observed in this case... are they skewed distributions? So, the means may match with the observed? I think the reason is that the posterior on sigma.obs is a lot bigger than before. 
 
 ```{r}
 dif.Xy_2004 <- sum((na.omit(Xs.stats.2004$median_X - ys.stats.2004$obsY))^2)
 dif.Xy_2004
 ```
 
-The squared sum of differences between observed and predicted is ```r signif(dif.Xy_2004, digits = 3)``` where there were ```r length(na.omit(Xs.stats.2004$median_X - ys.stats.2004$obsY))``` data points. This was larger than from the previous model. So, the first model seemed to be better than this one using that metric. 
+The squared sum of differences between observed and predicted is ```r signif(dif.Xy_2004, digits = 3)``` where there were ```r length(na.omit(Xs.stats.2004$median_X - ys.stats.2004$obsY))``` data points. This was larger than from the previous models. So, the first model seemed to be better than this one using that metric. 
 
-```{r}
-summary.zm.W_2004 <- results.Warmon_SSAR1_month_2004$summary.zm
-Xs.stats.2004$mean_X <- summary.zm.W_2004$statistics[grep(pattern = "X[/[]", 
-                                     row.names(summary.zm.W_2004$statistics)), 
-                                "Mean"]
-```
+<!-- #```{r} -->
+<!-- #summary.zm.W_2004 <- results.Warmon_SSAR1_month_2004$summary.zm -->
+<!-- #Xs.stats.2004$mean_X <- summary.zm.W_2004$statistics[grep(pattern = "X[/[]",  -->
+<!-- #                                     row.names(summary.zm.W_2004$statistics)),  -->
+<!-- #                                "Mean"] -->
+<!-- #``` -->
 
-Add the means to the plot:
+<!-- #```{r} -->
+<!-- #p.W.predicted.var.2004 <- p.W.predicted.var.2004 + -->
+<!-- #  geom_point(data = Xs.stats.2004, -->
+<!-- #             aes(x = time, y = mean_X),  -->
+<!-- #             color = "red", shape = 5, -->
+<!-- #             alpha = 0.5) -->
 
-```{r}
-p.W.predicted.var.2004 <- p.W.predicted.var.2004 +
-  geom_point(data = Xs.stats.2004,
-             aes(x = time, y = mean_X), 
-             color = "red", shape = 5,
-             alpha = 0.5)
+<!-- # if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png',  -->
+<!-- #                      plot = p.W.predicted.var.2006to2013, -->
+<!-- #                      dpi = 600, height = 6, width = 8, units = "in") -->
+<!-- #p.W.predicted.var.2004 -->
+<!-- #``` -->
 
-# if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png', 
-#                      plot = p.W.predicted.var.2006to2013,
-#                      dpi = 600, height = 6, width = 8, units = "in")
-p.W.predicted.var.2004
-```
+<!-- # ```{r} -->
+<!-- bugs.data.short <- results.Warmon_SSAR1_month_2004$bugs.data -->
+<!-- Xs.stats.short <- Xs.stats.2004 -->
+<!-- ys.stats.short <- ys.stats.2004 -->
 
-Means and Medians are pretty much on top of each other for the observed data. Is it possible that data are different? A quick look:
+<!-- df.short <- data.frame(time = Xs.stats.short$time, -->
+<!--                        obsY = Xs.stats.short$obsY, -->
+<!--                        median_X = Xs.stats.short$median_X, -->
+<!--                        bugs.Y = bugs.data.short$y) -->
 
-```{r}
-bugs.data.short <- results.Warmon_SSAR1_month_2004$bugs.data
-Xs.stats.short <- Xs.stats.2004
-ys.stats.short <- ys.stats.2004
+<!-- #rm(list = c("results.Warmon_SSAR1_month_2004")) -->
+<!-- load("RData/SSAR1_month_W_all_2018-06-12.RData") -->
+<!-- #zm.W <- results.Warmon_SSAR1_month_all$zm -->
+<!-- bugs.data.long <- results.Warmon_SSAR1_month_all$bugs.data -->
+<!-- Xs.stats.long <- results.Warmon_SSAR1_month_all$Xs.stats -->
+<!-- ys.stats.long <- results.Warmon_SSAR1_month_all$ys.stats -->
+<!-- df.long <- data.frame(time = Xs.stats.long$time, -->
+<!--                        obsY = Xs.stats.long$obsY, -->
+<!--                        median_X = Xs.stats.long$median_X, -->
+<!--                        bugs.Y = bugs.data.long$y) -->
 
-df.short <- data.frame(time = Xs.stats.short$time,
-                       obsY = Xs.stats.short$obsY,
-                       median_X = Xs.stats.short$median_X,
-                       bugs.Y = bugs.data.short$y)
+<!-- ggplot() +  -->
+<!--   geom_point(data = df.short,  -->
+<!--              aes(x = time, y = obsY), -->
+<!--              color = "red", size = 4) +  -->
+<!--   geom_point(data = df.short, -->
+<!--              aes(x = time, y = bugs.Y), -->
+<!--              color = "yellow", size = 3) +  -->
+<!--   geom_point(data = df.long, -->
+<!--              aes(x = time, y = obsY), -->
+<!--              color = "green", size = 2) +  -->
+<!--   geom_point(data = df.long, -->
+<!--              aes(x = time, y = bugs.Y), -->
+<!--              color = "blue", size = 1)   -->
 
-#rm(list = c("results.Warmon_SSAR1_month_2004"))
-load("RData/SSAR1_month_W_all_2018-06-12.RData")
-#zm.W <- results.Warmon_SSAR1_month_all$zm
-bugs.data.long <- results.Warmon_SSAR1_month_all$bugs.data
-Xs.stats.long <- results.Warmon_SSAR1_month_all$Xs.stats
-ys.stats.long <- results.Warmon_SSAR1_month_all$ys.stats
-df.long <- data.frame(time = Xs.stats.long$time,
-                       obsY = Xs.stats.long$obsY,
-                       median_X = Xs.stats.long$median_X,
-                       bugs.Y = bugs.data.long$y)
+<!-- ``` -->
 
-ggplot() + 
-  geom_point(data = df.short, 
-             aes(x = time, y = obsY),
-             color = "red", size = 4) + 
-  geom_point(data = df.short,
-             aes(x = time, y = bugs.Y),
-             color = "yellow", size = 3) + 
-  geom_point(data = df.long,
-             aes(x = time, y = obsY),
-             color = "green", size = 2) + 
-  geom_point(data = df.long,
-             aes(x = time, y = bugs.Y),
-             color = "blue", size = 1)  
-  
-```
-
-So... the data are identical for 2004 on. The first few years make that much difference? 
 
 Now, how about including starting from 2006?
 ```{r}
@@ -589,20 +580,20 @@ Xs.stats.2006$mean_X <- summary.zm.W_2006$statistics[grep(pattern = "X[/[]",
                                 "Mean"]
 ```
 
-Add the means to the plot:
+<!-- Add the means to the plot: -->
 
-```{r}
-p.W.predicted.var.2006 <- p.W.predicted.var.2006 +
-  geom_point(data = Xs.stats.2006,
-             aes(x = time, y = mean_X), 
-             color = "red", shape = 5,
-             alpha = 0.5)
+<!-- ```{r} -->
+<!-- p.W.predicted.var.2006 <- p.W.predicted.var.2006 + -->
+<!--   geom_point(data = Xs.stats.2006, -->
+<!--              aes(x = time, y = mean_X),  -->
+<!--              color = "red", shape = 5, -->
+<!--              alpha = 0.5) -->
 
-# if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png', 
-#                      plot = p.W.predicted.var.2006to2013,
-#                      dpi = 600, height = 6, width = 8, units = "in")
-p.W.predicted.var.2006
-```
+<!-- # if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png',  -->
+<!-- #                      plot = p.W.predicted.var.2006to2013, -->
+<!-- #                      dpi = 600, height = 6, width = 8, units = "in") -->
+<!-- p.W.predicted.var.2006 -->
+<!-- ``` -->
 
 Because using the "2006" data and the two-tau one-theta model minizes the credible intervals among all the datasets and models, I decided to use this combination for filling in the missing data. 
 
@@ -646,12 +637,12 @@ p.W.estimated.counts <- ggplot() +
              aes(x = year, y = total))+
   geom_errorbar(data = Xs.year.W2,
                 aes(x = year, ymin = low, ymax = high)) + 
-  #geom_point(data = Tapilatu.data,
-  #           aes(x = year, y = count), color = 'red') +
+  geom_point(data = Tapilatu.data,
+             aes(x = year, y = count), color = 'red') +
   labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_estimated_counts.png', 
-                     plot = p.W.predicted.var.2006to2013,
+                     plot = p.W.estimated.counts,
                      dpi = 600, height = 6, 
                      width = 8, units = "in")
 p.W.estimated.counts
