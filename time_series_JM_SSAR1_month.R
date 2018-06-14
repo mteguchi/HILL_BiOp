@@ -5,7 +5,7 @@ rm(list=ls())
 
 tic <- Sys.time()
 Sys <- Sys.info()
-source('Dc_Indonesia_nesting_fcns.R')
+source('HILL_BiOp_functions.R')
 library(rjags)
 library(bayesplot)
 
@@ -17,40 +17,48 @@ MCMC.params <- list(n.chains = 3,
                     n.adapt = 100000)
 
 # get JM data first:
-data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
+data.0.JM <- read.csv('data/JM_nests.csv')
 
-#data.0 <- read.csv("data/NestCount_Warmon_27March2018.csv")
+# create regularly spaced time series:
+data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin,
+                                       na.rm = T):max(data.0.JM$Year_begin,
+                                                      na.rm = T),
+                                   each = 12),
+                        Month_begin = rep(1:12,
+                                          max(data.0.JM$Year_begin,
+                                              na.rm = T) -
+                                            min(data.0.JM$Year_begin,
+                                                na.rm = T) + 1)) %>%
+  mutate(begin_date = as.Date(paste(Year,
+                                    Month_begin,
+                                    '01', sep = "-"),
+                              format = "%Y-%m-%d"),
+         Frac.Year = Year + (Month_begin-0.5)/12) %>%
+  select(Year, Month_begin, begin_date, Frac.Year)
 
+data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
+                                                Month_begin,
+                                                '01', sep = "-"),
+                                          format = "%Y-%m-%d")) %>%
+  mutate(Year = Year_begin,
+         Month = Month_begin,
+         f_month = as.factor(Month),
+         f_year = as.factor(Year),
+         Frac.Year = Year + (Month_begin-0.5)/12,
+         Nests = JM.1) %>%
+  select(Year, Month, Frac.Year, begin_date, Nests) %>%
+  na.omit() %>%
+  right_join(.,data.2.JM, by = "begin_date") %>%
+  transmute(Year = Year.y,
+            Month = Month_begin,
+            Frac.Year = Frac.Year.y,
+            Nests = Nests) %>%
+  reshape::sort_df(.,vars = "Frac.Year") %>%
+  filter(Year > 1998) -> data.1.JM
 
-# create time-duration filed (in yrs)
-# define dates with begin and end dates:
-data.0.JM %>% reshape2::melt(id.vars = "YEAR",
-                             variable.name = "month",
-                             value.name = "count") -> data.1.JM
-data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
-
-data.1.JM %>% mutate(., f.month = as.factor(MONTH),
-                     f.year = as.factor(YEAR))%>%
-  filter(YEAR > 2000) %>%
-  mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
-  reshape::sort_df(.,vars = "Frac.Year") -> data.1.JM
-
-#data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
-
-bugs.data <- list(y = data.1.JM$count,
-                  m = data.1.JM$MONTH,
+bugs.data <- list(y = data.1.JM$Nests,
+                  m = data.1.JM$Month,
                   T = nrow(data.1.JM))
-
-inits.function <- function(){
-  mu <- rnorm(1, 0, 10)
-  theta <- rnorm(1, 0, 1)
-  phi <- rnorm(1, 0, 1)
-  #sigma.pro <- runif(1, 0, 50)
-  #sigma.obs <- runif(1, 0, 50)
-  A <- list(mu = mu, theta = theta)
-  #          sigma.pro = sigma.pro, sigma.obs = sigma.obs)
-  return(A)
-}
 
 load.module('dic')
 params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
@@ -79,25 +87,26 @@ summary.zm <- summary(zm)
 ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(ys.stats) <- c('low_y', 'mode_y', 'high_y')
+colnames(ys.stats) <- c('low_y', 'median_y', 'high_y')
 ys.stats$time <- data.1.JM$Frac.Year
-ys.stats$obsY <- data.1.JM$count
-ys.stats$month <- data.1.JM$MONTH
-ys.stats$year <- data.1.JM$YEAR
+ys.stats$obsY <- data.1.JM$Nests
+ys.stats$month <- data.1.JM$Month
+ys.stats$year <- data.1.JM$Year
 
 # extract Xs - the state model
 Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+colnames(Xs.stats) <- c('low_X', 'median_X', 'high_X')
 Xs.stats$time <- data.1.JM$Frac.Year
-Xs.stats$obsY <- data.1.JM$count
-Xs.stats$month <- data.1.JM$MONTH
-Xs.stats$year <- data.1.JM$YEAR
+Xs.stats$obsY <- data.1.JM$Nests
+Xs.stats$month <- data.1.JM$Month
+Xs.stats$year <- data.1.JM$Year
 
-Xs.year <- group_by(Xs.stats, year) %>% summarize(mode = sum(mode_X),
+Xs.year <- group_by(Xs.stats, year) %>% summarize(mode = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
+
 
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
@@ -108,10 +117,10 @@ p.1 <- ggplot() +
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
+             aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
+            aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",

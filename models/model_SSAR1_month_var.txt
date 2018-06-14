@@ -16,7 +16,7 @@ model{
 
 		# observation
 		predY[t] <- X[t]
-		y[t] ~ dnorm(X[t], tau.obs)T(0,)
+		y[t] ~ dnorm(X[t], tau.obs)
     }
 
     X[1] <- mu

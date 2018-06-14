@@ -100,7 +100,7 @@ summary.zm <- summary(zm)
 ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(ys.stats) <- c('low_y', 'mode_y', 'high_y')
+colnames(ys.stats) <- c('low_y', 'median_y', 'high_y')
 ys.stats$time <- data.1.JM$Frac.Year
 ys.stats$obsY <- data.1.JM$Nests
 ys.stats$month <- data.1.JM$Month
@@ -110,13 +110,13 @@ ys.stats$year <- data.1.JM$Year
 Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+colnames(Xs.stats) <- c('low_X', 'median_X', 'high_X')
 Xs.stats$time <- data.1.JM$Frac.Year
 Xs.stats$obsY <- data.1.JM$Nests
 Xs.stats$month <- data.1.JM$Month
 Xs.stats$year <- data.1.JM$Year
 
-Xs.year <- group_by(Xs.stats, year) %>% summarize(mode = sum(mode_X),
+Xs.year <- group_by(Xs.stats, year) %>% summarize(mode = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
 
@@ -124,15 +124,15 @@ p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
+  #          aes(x = time, y = median_X), color = 'blue') +
   geom_line(data = Xs.stats,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
+             aes(x = time, y = median_X), color = "red",
              alpha = 0.5, size = 2) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
+            aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
   geom_line(data = Xs.stats,
             aes(x = time, y = low_X), color = "red",
