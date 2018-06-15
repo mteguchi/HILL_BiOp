@@ -1,5 +1,5 @@
 ---
-title: "Nest count estimations and trend for Western Pacific leatherback nesting beaches"
+title: "Nest count estimations and trend for Jamursba-Medi leatherback turtle nesting beaches"
 output: html_notebook
 ---
 
@@ -20,6 +20,7 @@ library(bayesplot)
 #
 # # set back to the base theme:
 ggplot2::theme_set(base_theme)
+save.fig <- TRUE
 ```
 
 #Jamursba-Medi
@@ -212,7 +213,7 @@ if (save.fig) ggsave(filename = 'figures/JM_logN_predicted_1999.png',
                      width = 8, units = "in")
 ```
 
-The missing values are basically linearly interpolated between observed values. Converting them back into the non-log scale:
+The missing values are basically linearly interpolated between observed values. That is not very useful. Converting them back into the non-log scale:
 
 ```{r}
 p.JM.N.predicted.1999 <- ggplot() +
@@ -268,17 +269,24 @@ Using the cyclic nature of nesting, we should be able to fit a model to fill in 
 First, I try to fill in the missing data points using an AR(1) state-space model and data since 1999. JAGS model for this analysis:
 
 ```{r}
-load("RData/SSAR1_month_var_JM_1999_2018-06-07.RData")
+load("RData/SSAR1_month_var_JM_1999_2018-06-15.RData")
 results.JM_SSAR1_month_var$jm
 ```
 
-It has two process standard deviations; one for summer (May through September; sigma.pro1) and another for winter (sigma.pro2). Observation has only one standard deviation under the assumption that it does not change with time. Data for this analysis is the same as before so not shown here. Convergence seemed to reach, according to the Gelman diagnostic, except the standard deviation of the observation.
+It has two process standard deviations; one for summer (May through September; sigma.pro1) and another for winter (sigma.pro2). Observation has one standard deviation under the assumption that it does not change with time. Data for this analysis is here: y is the observed nest counts, m is months, and T is the duration of the time series. NAs indicate missing data points. 
+
+```{r}
+results.JM_SSAR1_month_var$bugs.data
+```
+
+
+Convergence seemed to reach, according to the Gelman diagnostic.
 
 ```{r}
 results.JM_SSAR1_month_var$g.diag
 ```
 
-Posterior trace plots also show the same results.  
+Posterior trace plots also show the same results. sigma.obs (standard deviation of observations) doesn't look great in the trace.  
 
 ```{r}
 zm.var.JM.1999 <- results.JM_SSAR1_month_var$zm
@@ -288,7 +296,7 @@ mcmc_trace(zm.var.JM.1999,
 ```
 
   
-Posterior density plots of the same parameters:
+Posterior density plots of the same parameters show the same thing about sigma.obs. Note that these are very small numbers. 
 
 ```{r}
 zm.var.JM.1999 <- results.JM_SSAR1_month_var$zm
@@ -335,17 +343,23 @@ if (save.fig) ggsave(filename = 'figures/JM_month_var_predicted_1999.png',
                      width = 8, units = "in")
 ```
 
-It looks a lot better than the previous model but can we make it even better?
+Visually, it looks a lot better than the previous model (log) but it still is basically interpolating missing values. Confidence intervals are much better though. 
 
-The next model has two variances and two "slope" parameters. As before, two variances correspond to nesting (May, June, July, August, and September; sigma.pro1) and non-nesting (sigma.pro2) seasons, whereas two slopes are for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year.  Because it takes a bit of time to run these, output has been saved as an RData file. 
-
-First, JAGS model for the analysis:
 ```{r}
-load("RData/SSAR1_month_JM_var_theta_1999_2018-06-06.RData")
+dif.Xy_all <- sum((na.omit(Xs.stats$median_X -
+                                 ys.stats$obsY))^2)
+dif.Xy_all
+```
+The sum of squared differences between observed and predicted is ```r signif(dif.Xy_all, digits = 3)``` where there were ```r length(na.omit(Xs.stats$median_X - ys.stats$obsY))``` data points. This is a very small difference, scary small! 
+
+The next model has two variances and two "slope" parameters. As before, two variances correspond to nesting (May, June, July, August, and September; sigma.pro1) and non-nesting (sigma.pro2) seasons, whereas two slopes are for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year.   
+
+```{r}
+load("RData/SSAR1_month_JM_var_theta_1999_2018-06-14.RData")
 results.JM_SSAR1_month_var_theta$jm
 ```
 
-Data used for this analysis:
+Data used for this analysis should be the same as the last one:
 
 ```{r}
 results.JM_SSAR1_month_var_theta$bugs.data
@@ -378,31 +392,31 @@ mcmc_dens(zm.var.theta.JM.1999,
 
 ```
 
-I look at the predicted values as a time-series plot. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed line. Although I called mode_X, they should have been median_X because they were 50 percentiles... oops. 
+I look at the predicted values as a time-series plot. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed line.  
 
 ```{r warning=F}
-Xs.stats <- results.JM_SSAR1_month_var_theta$Xs.stats
-ys.stats <- results.JM_SSAR1_month_var_theta$ys.stats
-ys.stats$obsY <- results.JM_SSAR1_month_var_theta$data.1$Nests
+Xs.stats_var_theta <- results.JM_SSAR1_month_var_theta$Xs.stats
+ys.stats_var_theta <- results.JM_SSAR1_month_var_theta$ys.stats
+ys.stats_var_theta$obsY <- results.JM_SSAR1_month_var_theta$data.1$Nests
 
 p.JM.predicted_month_var_theta_1999 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
+  geom_line(data = Xs.stats_var_theta,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
+  geom_point(data = Xs.stats_var_theta,
+             aes(x = time, y = median_X), color = "red",
              alpha = 0.5, size = 2) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
+  geom_line(data = Xs.stats_var_theta,
+            aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
-  geom_line(data = Xs.stats,
+  geom_line(data = Xs.stats_var_theta,
             aes(x = time, y = low_X), color = "red",
             linetype = 2) +
-  geom_point(data = ys.stats,
+  geom_point(data = ys.stats_var_theta,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) +
   labs(x = '', y = "Nest counts",
@@ -410,35 +424,41 @@ p.JM.predicted_month_var_theta_1999 <- ggplot() +
 
 p.JM.predicted_month_var_theta_1999
 if (save.fig) ggsave(filename = 'figures/JM_predicted_month_var_theta_1999.png', 
-                     plot = p.JM.predicted.1999,
+                     plot = p.JM.predicted_month_var_theta_1999,
                      dpi = 600, height = 6, 
                      width = 8, units = "in")
 ```
 
-The uncertainty shrunk quite a bit with this model. We may go with this one? 
+The uncertainty shrunk quite a bit with this model. 
 
+```{r}
+dif.Xy_var_theta <- sum((na.omit(Xs.stats_var_theta$median_X -
+                                 ys.stats_var_theta$obsY))^2)
+dif.Xy_var_theta
+```
+The sum of squared differences between observed and predicted is ```r signif(dif.Xy_var_theta, digits = 3)``` where there were ```r length(na.omit(Xs.stats_var_theta$median_X - ys.stats_var_theta$obsY))``` data points.
+
+A bit larger than the last one but still a very small difference, scary small! I like the smaller credible intervals with this model. So, for now, I'm going to use the output from this one.  
 
 Sum within each year to find change in trend over the years.
 ```{r}
 #sum.posterior is in Dc_Indonesia_nesting_fcn.R
 
-yrs <- as.matrix(c(min(Xs.stats$year):max(Xs.stats$year)))
+yrs <- as.matrix(c(min(ys.stats_var_theta$year):max(ys.stats_var_theta$year)))
 X.posteriors.all <- lapply(apply(yrs, 
                                  MARGIN = 1,
                                  FUN = sum.posterior, 
-                                 Xs.stats = Xs.stats, 
+                                 Xs.stats = Xs.stats_var_theta, 
                                  zm = zm.var.theta.JM.1999),
                            FUN = function(x) rowSums(x$samples))
 
 Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
                                               FUN = quantile,
-                                              c(0.025, 
-                                                0.5, 
-                                                0.975))),
+                                              c(0.025, 0.5, 0.975))),
                                 ncol = 3, byrow = T)) 
 colnames(Xs.year) <- c("low", "total", "high")
 Xs.year <-mutate(Xs.year, 
-                 year = c(min(Xs.stats$year):max(Xs.stats$year)))
+                 year = c(min(ys.stats_var_theta$year):max(ys.stats_var_theta$year)))
 
 # Xs.stats %>% #mutate(f.year = as.factor(year)) %>%
 #   group_by(year) %>% summarise(total = sum(mode_X), 
@@ -476,17 +496,15 @@ p.JM.estimated.observed
 The size of circles indicates effort in the number of sampling days. 
 
 
-
-
 #Winter vs. Summer nest trends
-Because of the  nearshore currents are different between summer and winter, it may make more sense to look at trends for winter and summer counts separately. So, we have to pull in the predicted numbers from model outputs. First from Wermon. 
+Because of the  nearshore currents are different between summer and winter, it may make more sense to look at trends for winter and summer counts separately. So, we have to pull in the predicted numbers from model outputs. First from Wermon. The "best" model and dataset combination was two-tau one-theta with May not included in the summer counts. 
 
 ```{r}
 # get Wermon output
-load("RData/SSAR1_month_W_var_theta_2006to2017_2018-05-07.RData")
-zm.W <- results.W_SSAR1_month_var_theta$zm
-Xs.stats.W <- results.W_SSAR1_month_var_theta$Xs.stats
-ys.stats.W <- results.W_SSAR1_month_var_theta$ys.stats
+load("RData/SSAR1_month_W_2006_2018-06-12.RData")
+zm.W <- results.Warmon_SSAR1_month_2006$zm
+Xs.stats.W <- results.Warmon_SSAR1_month_2006$Xs.stats
+ys.stats.W <- results.Warmon_SSAR1_month_2006$ys.stats
 
 # for this analysis, we need to extract just summer/winter numbers.
 yrs.W <- as.matrix(c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
@@ -528,7 +546,8 @@ Xs.year.W.winter <- mutate(Xs.year.W.winter,
 
 Next is Jamursba-Medi:
 ```{r}
-load("RData/SSAR1_month_JM_var_theta_1999_2018-05-03.RData")
+load("RData/SSAR1_month_JM_var_theta_1999_2018-06-14.RData")
+
 zm.JM <- results.JM_SSAR1_month_var_theta$zm
 Xs.stats.JM <- results.JM_SSAR1_month_var_theta$Xs.stats
 ys.stats.JM <- results.JM_SSAR1_month_var_theta$ys.stats
@@ -570,7 +589,7 @@ Xs.year.JM.winter <- mutate(Xs.year.JM.winter,
                             year = c(min(Xs.stats.JM$year):max(Xs.stats.JM$year)))
 ```
 
-Then combine them together. If there was no data in either location (NA), I put zero. 
+Then combine them together. If there was no data in either location (NA), I put zero, which probably is not kosher... 
 
 ```{r}
 Xs.year.JM.summer %>% full_join(Xs.year.W.summer, by = "year") %>%
