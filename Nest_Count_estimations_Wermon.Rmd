@@ -1,6 +1,6 @@
 ---
 title: "Nest count estimation Wermon"
-output: html_notebook
+output: html_document
 ---
 #Wermon
 ```{r echo=FALSE}
