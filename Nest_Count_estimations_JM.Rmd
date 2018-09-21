@@ -20,7 +20,7 @@ library(bayesplot)
 #
 # # set back to the base theme:
 ggplot2::theme_set(base_theme)
-save.fig <- TRUE
+save.fig <- F
 ```
 
 #Jamursba-Medi

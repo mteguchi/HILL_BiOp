@@ -1,0 +1,39 @@
+
+model
+{  
+   
+   tauQ ~ dgamma(q_alpha,q_beta)
+   Q <- 1/tauQ # Q is process variance
+   
+   X0 ~ dnorm(x0_mean, 1/(x0_sd^2)) # prior on init state
+     
+   X[1] <- X0
+   predX[1] <- X[1] 
+   
+   tauR ~ dgamma(r_alpha,r_beta)
+   R <- 1/tauR;  # R is observation variance
+   Y[1] ~  dnorm(predX[1], tauR) # Y is observation
+   U ~ dnorm(u_mean, 1/(u_sd^2)) 
+
+   u_mean ~ dunif(-1, 1)
+   u_sd ~ dunif(0, 0.1)
+
+   for(tt in 2:n.yrs) {
+      
+      predX[tt] <- X[tt-1] + U
+
+      X[tt] ~ dnorm(predX[tt], tauQ) # X is true state
+      #Y[tt] ~ dnorm(predX[tt], tauR)
+      Y[tt] ~ dnorm(X[tt], tauR)    # TE 2018-08-16
+   }
+
+   mean.u <- mean(U)
+   #sd.u <- sd(U)
+   for (t in (n.yrs+1):n.yrs.proj){
+      U.proj[t] ~ dnorm(mean.u, 1/(0.05^2))
+      predX[t] <- X[t-1] + U.proj[t]
+      X[t] ~ dnorm(predX[t], tauQ) # X is true state
+      #Y[t] ~ dnorm(X[tt], tauR)   
+   }
+
+}

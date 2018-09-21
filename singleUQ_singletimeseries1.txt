@@ -1,0 +1,24 @@
+
+model
+{  
+   U ~ dnorm(u_mean,1/(u_sd^2)) # U is long-term trend
+   
+   tauQ ~ dgamma(q_alpha,q_beta)
+   Q <- 1/tauQ # Q is process variance
+   
+   X0 ~ dnorm(x0_mean, 1/(x0_sd^2)) # prior on init state
+   
+   predX[1] <- X0 + U  
+   X[1] <- predX[1] 
+   
+   tauR ~ dgamma(r_alpha,r_beta)
+   R <- 1/tauR;  # R is observation variance
+   Y[1] ~  dnorm(predX[1], tauR) # Y is observation
+   
+   for(tt in 2:n.yrs) {
+      predX[tt] <- X[tt-1] + U
+      X[tt] ~ dnorm(predX[tt],tauQ) # X is true state
+      #Y[tt] ~ dnorm(predX[tt], tauR)
+      Y[tt] ~ dnorm(X[tt], tauR)    # TE 2018-08-16
+   }
+}

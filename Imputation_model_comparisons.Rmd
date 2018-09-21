@@ -1,0 +1,81 @@
+---
+title: "Model comparison for data imputation"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(bayesplot)
+library(tidyverse)
+library(lubridate)
+
+```
+
+
+This document and R code are used to describe how models were compared for imputation of missing data in nest counts of leatherback turtles at Jamusrba-Medi and Wermon. 
+
+#Jamursba-Medi
+For JM, the raw data looked like the following.
+
+```{r}
+# get JM data first:
+data.0.JM <- read.csv('data/JM_nests.csv')
+
+# create regularly spaced time series:
+data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin,
+                                       na.rm = T):max(data.0.JM$Year_begin,
+                                                      na.rm = T),
+                                   each = 12),
+                        Month_begin = rep(1:12,
+                                          max(data.0.JM$Year_begin,
+                                              na.rm = T) -
+                                            min(data.0.JM$Year_begin,
+                                                na.rm = T) + 1)) %>%
+  mutate(begin_date = as.Date(paste(Year,
+                                    Month_begin,
+                                    '01', sep = "-"),
+                              format = "%Y-%m-%d"),
+         Frac.Year = Year + (Month_begin-0.5)/12) %>%
+  select(Year, Month_begin, begin_date, Frac.Year)
+
+data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
+                                                Month_begin,
+                                                '01', sep = "-"),
+                                          format = "%Y-%m-%d")) %>%
+  mutate(Year = Year_begin,
+         Month = Month_begin,
+         f_month = as.factor(Month),
+         f_year = as.factor(Year),
+         Frac.Year = Year + (Month_begin-0.5)/12,
+         Nests = JM.1) %>%
+  select(Year, Month, Frac.Year, begin_date, Nests) %>%
+  na.omit() %>%
+  right_join(.,data.2.JM, by = "begin_date") %>%
+  transmute(Year = Year.y,
+            Month = Month_begin,
+            Frac.Year = Frac.Year.y,
+            Nests = Nests) %>%
+  reshape::sort_df(.,vars = "Frac.Year") -> data.1.JM
+# %>% filter(Year > 1998)
+
+ggplot(data = data.1.JM) + geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests))
+
+```
+
+Removing data prior to 1999...
+
+```{r}
+data.1.JM %>% filter(Year > 1998) -> data.1.JM
+ggplot(data = data.1.JM) + geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests))
+
+```
+
+The goal of the data imputation was to fill in the missing data. The basic model was autoregressive time-series model with time lag of 1 month. This decision was based on how counts were temporally correlated - there is a peak nesting month. 
+
+```{r}
+ggplot(data = data.1.JM) + geom_line(aes(x = Month, y = Nests, color = as.factor(Year)))
+```
+
+
