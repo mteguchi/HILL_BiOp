@@ -66,9 +66,9 @@ jags.data <- list(y = data.1.JM$Nests,
                   m = data.1.JM$Month,
                   T = nrow(data.1.JM))
 
-load.module('dic')
+#load.module('dic')
 jags.params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-                 'sigma.obs', 'mu', 'y', 'X', 'deviance')
+                 'sigma.obs', 'mu', 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
                    inits = NULL,
@@ -146,8 +146,8 @@ if (save.fig)
          dpi = 600)
 
 if (save.RData)
-  save(results.JM_SSAR1_month_var,
-       file = paste0('RData/SSAR1_month_var_JM_1999_jagsUI_', Sys.Date(), '.RData'))
+  saveRDS(results.JM_SSAR1_month_var,
+       file = paste0('RData/SSAR1_month_var_JM_1999_jagsUI_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

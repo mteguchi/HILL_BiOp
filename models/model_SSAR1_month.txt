@@ -17,12 +17,14 @@ model{
 		# observation
 		predY[t] <- X[t]
 		y[t] ~ dnorm(X[t], tau.obs)
+
+        loglik[t] <- log(dnorm(y[t], X[t], tau.obs)) + log(dnorm(X[t], predX[t], tau.pro[t]))
     }
 
     X[1] <- mu
     predY[1] <- X[1]
     y[1] ~ dnorm(X[1], tau.obs)T(0,)
-
+    
     mu ~ dnorm(0, 0.01)
     #tau.pro1 ~ scaled.gamma(100, 2)
     sigma.pro1 ~ dunif(0, 1500)

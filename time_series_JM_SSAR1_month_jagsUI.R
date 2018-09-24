@@ -71,12 +71,12 @@ jags.data <- list(y = data.1.JM$Nests,
 
 
 jags.params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu',
-                 'y', 'X', 'deviance')
+                 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_month.txt',
+           model.file = 'models/model_SSAR1_month_var.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -150,7 +150,7 @@ if (save.fig)
 
 if (save.RData)
   saveRDS(results.JM_SSAR1_month,
-       file = paste0('RData/SSAR1_month_JM_1999_jagsUI', Sys.Date(), '.rds'))
+       file = paste0('RData/SSAR1_month_JM_1999_jagsUI_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

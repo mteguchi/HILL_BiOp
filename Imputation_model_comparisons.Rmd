@@ -78,4 +78,47 @@ The goal of the data imputation was to fill in the missing data. The basic model
 ggplot(data = data.1.JM) + geom_line(aes(x = Month, y = Nests, color = as.factor(Year)))
 ```
 
+Because of the summer peak in nesting, I fit a few statistical models that may represent the changes in nest counts each year. These models are based on variances of nest counts and slopes of changes in nest counts between two consecutive months. The full model would have two variance terms and two slope terms. For variance terms, I define one for nesting months (May to August) and another for non-nesting months (September to April).  Reduced models would have some of these parameters omitted. 
+
+To compare the fit and predictive performance of the models, I use the loo pacakge.
+
+```{r}
+library(loo)
+# first with one-slope model
+JM.1999.var <- readRDS("RData/SSAR1_month_var_JM_1999_jagsUI_2018-09-24.rds")
+loglik.obs_JM.1999.var <- JM.1999.var$jm$sims.list$loglik[, !is.na(JM.1999.var$jags.data$y)]
+Reff_JM.1999.var <- relative_eff(exp(loglik.obs_JM.1999.var), 
+                                 chain_id = c(rep(1,500), rep(2, 500), rep(3, 500),
+                                              rep(4, 500), rep(5, 500)))
+loo_JM.1999.var <- loo(loglik.obs_JM.1999.var, r_eff = Reff_JM.1999.var)
+loo_JM.1999.var$diagnostics$pareto_k[loo_JM.1999.var$diagnostics$pareto_k < 0.7]
+
+
+```
+
+Only a few passed the Pareto test... next up is the full model with two variances and two slopes.
+
+```{r}
+JM.1999.var.theta <- readRDS("RData/SSAR1_month_var_theta_JM_1999_jagsUI_2018-09-24.rds")
+loglik.obs_JM.1999.var.theta <- JM.1999.var.theta$jm$sims.list$loglik[, !is.na(JM.1999.var.theta$jags.data$y)]
+Reff_JM.1999.var.theta <- relative_eff(exp(loglik.obs_JM.1999.var.theta), 
+                                       chain_id = c(rep(1,500), rep(2, 500), rep(3, 500),
+                                                    rep(4, 500), rep(5, 500)))
+loo_JM.1999.var.theta <- loo(loglik.obs_JM.1999.var.theta, r_eff = Reff_JM.1999.var.theta)
+loo_JM.1999.var.theta$diagnostics$pareto_k[loo_JM.1999.var.theta$diagnostics$pareto_k < 0.7]
+
+```
+
+This one was better but just by a little and need a better model... how about using log-Normal instead of normal distributions?
+
+```{r}
+JM.1999.var.theta.logN <- readRDS("RData/SSAR1_lnorm_var_theta_JM_1999_jagsUI_2018-09-24.rds")
+loglik.obs_JM.1999.var.theta.logN <- JM.1999.var.theta.logN$jm$sims.list$loglik[, !is.na(JM.1999.var.theta.logN$jags.data$y)]
+Reff_JM.1999.var.theta.logN <- relative_eff(exp(loglik.obs_JM.1999.var.theta.logN), 
+                                       chain_id = c(rep(1,500), rep(2, 500), rep(3, 500),
+                                                    rep(4, 500), rep(5, 500)))
+loo_JM.1999.var.theta.logN <- loo(loglik.obs_JM.1999.var.theta.logN, 
+                                  r_eff = Reff_JM.1999.var.theta.logN)
+loo_JM.1999.var.theta.logN$diagnostics$pareto_k[loo_JM.1999.var.theta.logN$diagnostics$pareto_k < 0.7]
+```
 

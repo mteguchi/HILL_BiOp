@@ -17,27 +17,27 @@ model{
 
         # one variance for May - Sep, another for the rest
         tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
-        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+        X[t] ~ dlnorm(predX[t], tau.pro[t])
 
 		# observation
 		predY[t] <- X[t]
-		y[t] ~ dnorm(X[t], tau.obs)
+		y[t] ~ dlnorm(X[t], tau.obs)
 
-        loglik[t] <- log(dnorm(y[t], X[t], tau.obs)) + log(dnorm(X[t], predX[t], tau.pro[t]))
+        loglik[t] <- log(dlnorm(y[t], X[t], tau.obs)) + log(dlnorm(X[t], predX[t], tau.pro[t]))
     }
 
     X[1] <- mu
     predY[1] <- X[1]
-    y[1] ~ dnorm(X[1], tau.obs)T(0,)
+    y[1] ~ dlnorm(X[1], tau.obs)T(0,)
 
     mu ~ dnorm(0, 0.01)
-    sigma.pro1 ~ dunif(0, 600)
+    sigma.pro1 ~ dunif(0, 10)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
 
-    sigma.pro2 ~ dunif(0, 100)
+    sigma.pro2 ~ dunif(0, 1)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
-    sigma.obs ~ dunif(0, 500)
+    sigma.obs ~ dunif(0, 10)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
     theta.1 ~ dnorm(0, 10)

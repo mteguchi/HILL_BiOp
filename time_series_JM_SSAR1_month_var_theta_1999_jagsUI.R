@@ -66,9 +66,9 @@ jags.data <- list(y = data.1.JM$Nests,
                   m = data.1.JM$Month,
                   T = nrow(data.1.JM))
 
-load.module('dic')
+#load.module('dic')
 jags.params <- c('theta.1', "theta.2", 'sigma.pro1', 'sigma.pro2',
-                 'sigma.obs', 'mu', 'y', 'X', 'deviance')
+                 'sigma.obs', 'mu', 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
                    inits = NULL,
@@ -147,7 +147,7 @@ if (save.fig)
 
 if (save.RData)
   saveRDS(results.JM_SSAR1_month_var_theta,
-       file = paste0('RData/SSAR1_month_var_theta_JM_1999_jagsUI_', Sys.Date(), '.RData'))
+       file = paste0('RData/SSAR1_month_var_theta_JM_1999_jagsUI_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -155,9 +155,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(zm$samples, c('theta.1', "theta.2", 
+  mcmc_trace(jm$samples, c('theta.1', "theta.2", 
                            "sigma.pro1", "sigma.pro2", "sigma.obs"))
-  mcmc_dens(zm$samples, c('theta', "theta.2", 
+  mcmc_dens(jm$samples, c('theta.1', "theta.2", 
                           "sigma.pro1", "sigma.pro2", "sigma.obs"))
 
 }
