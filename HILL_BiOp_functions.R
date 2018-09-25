@@ -11,6 +11,7 @@ ifelse(Sys.info()[1] == 'Linux',
 library(ggplot2)
 library(tidyverse)
 library(lubridate)
+library(loo)
 
 # extract.samples in TomosFunctions.R
 sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
@@ -27,3 +28,15 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
+pareto.k.diag <- function(jm, MCMC.params, jags.data){
+  
+  n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+  
+  loglik.obs <- jm$sims.list$loglik[, !is.na(jags.data$y)]
+  Reff <- relative_eff(exp(loglik.obs), 
+                       chain_id = rep(1:MCMC.params$n.chains, each = n.per.chain))
+  loo.out <- loo(loglik.obs, r_eff = Reff)
+  return(list(loglik.obs = loglik.obs,
+              Reff = Reff,
+              loo.out = loo.out))
+}

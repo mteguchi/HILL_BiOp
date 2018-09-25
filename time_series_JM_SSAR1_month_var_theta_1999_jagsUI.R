@@ -80,7 +80,8 @@ jm <- jags(jags.data,
                    n.iter = MCMC.n.samples,
                    DIC = T, parallel=T)
 
-#g.diag1 <- gelman.diag(jm$samples)
+loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
+
 Rhat <- jm$Rhat
 
 # extract ys
@@ -139,7 +140,8 @@ results.JM_SSAR1_month_var_theta <- list(data.1 = data.1.JM,
                                          Sys = Sys,
                                          MCMC.params = MCMC.params,
                                          Rhat = Rhat,
-                                         jm = jm)
+                                         jm = jm,
+                                         loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
          filename = 'figures/predicted_counts_JM_month_var_theta_1999_jagsUI.png',

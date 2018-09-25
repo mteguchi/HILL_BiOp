@@ -23,7 +23,7 @@ model{
 		predY[t] <- X[t]
 		y[t] ~ dnorm(X[t], tau.obs)
 
-        loglik[t] <- log(dnorm(y[t], X[t], tau.obs)) + log(dnorm(X[t], predX[t], tau.pro[t]))
+        loglik[t] <- log(dnorm(y[t], X[t], tau.obs)) 
     }
 
     X[1] <- mu
