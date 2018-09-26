@@ -1,0 +1,55 @@
+---
+title: "Testing loo package"
+output: html_notebook
+---
+
+Trying to see if missing data are affecting the loo output of the original analysis. here I use the estimated missing data as "collected" data and run the same model - lognormal for the process and negative binomial for the observation.
+
+```{r}
+rm(list=ls())
+source("HILL_BiOp_functions.R")
+library(loo)
+library(jagsUI)
+library(coda)
+library(bayesplot)
+
+model.fit <- readRDS("RData/SSAR1_lnorm_negbin_var_theta_JM_1999_jagsUI_2018-09-26.rds")
+
+jags.data <- model.fit$jags.data
+jags.data$y <- floor(model.fit$ys.stats$median_y)
+
+MCMC.params <- model.fit$MCMC.params
+MCMC.n.chains <- MCMC.params$n.chains
+MCMC.n.thin <- MCMC.params$n.thin
+MCMC.n.burnin <- MCMC.params$n.burnin
+MCMC.n.samples <- MCMC.params$n.samples
+
+jags.params <- c('theta.1', "theta.2", 'sigma.pro1', 'sigma.pro2', "r",
+                 'mu', 'X', 'deviance', 'loglik')
+
+jm <- jags(jags.data,
+                   inits = NULL,
+                   parameters.to.save= jags.params,
+                   model.file = 'models/model_SSAR1_lnorm_negbin_var_theta.txt',
+                   n.chains = MCMC.n.chains,
+                   n.burnin = MCMC.n.burnin,
+                   n.thin = MCMC.n.thin,
+                   n.iter = MCMC.n.samples,
+                   DIC = T, parallel=T)
+
+loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
+
+ base_theme <- ggplot2::theme_get()
+  
+  # set back to the base theme:
+  ggplot2::theme_set(base_theme)
+  mcmc_trace(jm$samples, c('theta.1', "theta.2", "mu",
+                           "sigma.pro1", "sigma.pro2", "r"))
+  mcmc_dens(jm$samples, c('theta.1', "theta.2", "mu",
+                          "sigma.pro1", "sigma.pro2", "r"))
+  
+```
+
+Even without missing  values, Pareto k diagnostic values are bad. Now, I need to simulate data with the estimation model with fixed parameters and fit the same model back to the data to see if that provides good diagnostic values. 
+
+

@@ -32,9 +32,12 @@ pareto.k.diag <- function(jm, MCMC.params, jags.data){
   
   n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
   
-  loglik.obs <- jm$sims.list$loglik[, !is.na(jags.data$y)]
+  loglik.obs <- jm$sims.list$loglik[, 2:jags.data$T]
+  
   Reff <- relative_eff(exp(loglik.obs), 
-                       chain_id = rep(1:MCMC.params$n.chains, each = n.per.chain))
+                       chain_id = rep(1:MCMC.params$n.chains, 
+                                      each = n.per.chain))
+  
   loo.out <- loo(loglik.obs, r_eff = Reff)
   return(list(loglik.obs = loglik.obs,
               Reff = Reff,
