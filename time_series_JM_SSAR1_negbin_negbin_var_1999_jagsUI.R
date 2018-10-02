@@ -64,19 +64,18 @@ data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
 #data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
 data.1.JM <- data.1.JM[5:nrow(data.1.JM),]
-
 jags.data <- list(y = data.1.JM$Nests,
                   m = data.1.JM$Month,
                   T = nrow(data.1.JM))
 
 #load.module('dic')
-jags.params <- c('theta.1', "theta.2", 'sigma.pro1', 'sigma.pro2', "r",
+jags.params <- c('theta', 'sigma.pro1', 'sigma.pro2', "r", "r.X",
                  'mu', 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
                    inits = NULL,
                    parameters.to.save= jags.params,
-                   model.file = 'models/model_SSAR1_lnorm_negbin_var_theta.txt',
+                   model.file = 'models/model_SSAR1_negbin_negbin_var.txt',
                    n.chains = MCMC.n.chains,
                    n.burnin = MCMC.n.burnin,
                    n.thin = MCMC.n.thin,
@@ -120,13 +119,13 @@ p.1 <- ggplot() +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), color = "red",
+            aes(x = time, y = high_X), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), color = "red",
+             aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), color = "red",
+            aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
@@ -148,12 +147,12 @@ results.JM_SSAR1_month_var_theta <- list(data.1 = data.1.JM,
                                          loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_lnorm_negbin_var_theta_1999_jagsUI.png',
+         filename = 'figures/predicted_counts_JM_negbin_negbin_var_1999_jagsUI.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results.JM_SSAR1_month_var_theta,
-       file = paste0('RData/SSAR1_lnorm_negbin_var_theta_JM_1999_jagsUI_', Sys.Date(), '.rds'))
+       file = paste0('RData/SSAR1_negbin_negbin_var_JM_1999_jagsUI_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -161,9 +160,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c('theta.1', "theta.2", "mu",
+  mcmc_trace(jm$samples, c('theta', "mu", "r.X",
                            "sigma.pro1", "sigma.pro2", "r"))
-  mcmc_dens(jm$samples, c('theta.1', "theta.2", "mu",
+  mcmc_dens(jm$samples, c('theta', "mu", "r.X",
                           "sigma.pro1", "sigma.pro2", "r"))
 
 }

@@ -11,38 +11,33 @@
 
 model{
 	for (t in 2:T){
-		# process: increasing before August, decreasing after July
-        theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
-        predX[t] <- theta[t] * X[t-1]
+        predX[t] <- theta.1 * X[t-1]
 
         # one variance for May - Sep, another for the rest
         tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
         X[t] ~ dlnorm(predX[t], tau.pro[t])
 
 		# observation
-		y[t] ~ dnegbin(p[t], r)
-        p[t] <- r/(r + lambda[t])
-        
-        lambda[t] <- exp(X[t])
+		predY[t] <- exp(X[t])
+		y[t] ~ dpois(predY[t])
 
-        loglik[t] <- log(dnegbin(y[t], p[t], r))
+        loglik[t] <- log(dpois(y[t], exp(X[t])))
     }
 
     X[1] <- mu
     predY[1] <- exp(X[1])
-    y[1] ~ dnegbin(p[1], r)
-    p[1] <- r/(r + lambda[1])
-    lambda[1] <- exp(X[1])
+    y[1] ~ dpois(exp(X[1]))
 
     mu ~ dnorm(0, 0.1)
-    sigma.pro1 ~ dgamma(0.1, 0.01)
+    sigma.pro1 ~ dunif(0, 1)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
 
-    sigma.pro2 ~ dgamma(0.1, 0.01)
+    sigma.pro2 ~ dunif(0, 1)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
-    r ~ dgamma(0.1, 0.01)
+    #sigma.obs ~ dunif(0, 100)
+    #tau.obs <- 1/(sigma.obs * sigma.obs)
 
     theta.1 ~ dnorm(0, 1)
-    theta.2 ~ dnorm(0, 1)
+    #theta.2 ~ dnorm(0, 0.01)
 }

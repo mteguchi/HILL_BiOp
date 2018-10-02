@@ -8,10 +8,10 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/Documents/R/tools/TomosFunctions.R'),
        source('~/R/tools/TomosFunctions.R'))
 
-library(ggplot2)
-library(tidyverse)
-library(lubridate)
-library(loo)
+# library(ggplot2)
+# library(tidyverse)
+# library(lubridate)
+# library(loo)
 
 # extract.samples in TomosFunctions.R
 sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
@@ -33,6 +33,9 @@ pareto.k.diag <- function(jm, MCMC.params, jags.data){
   n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
   
   loglik.obs <- jm$sims.list$loglik[, !is.na(jags.data$y)]
+  # get rid of NA columns - even if data existed (for example the first value) - no likelihood
+  # for the first data point
+  loglik.obs <- loglik.obs[, colSums(is.na(loglik.obs)) == 0]
   Reff <- relative_eff(exp(loglik.obs), 
                        chain_id = rep(1:MCMC.params$n.chains, each = n.per.chain))
   loo.out <- loo(loglik.obs, r_eff = Reff)

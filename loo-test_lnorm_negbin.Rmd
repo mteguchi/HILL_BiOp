@@ -1,0 +1,152 @@
+---
+title: "Test loo"
+output: html_notebook
+---
+
+This script tests how the loo package performs on the data we use for the HILL analysis. Data are simulated using the fixed parameter values and the same models that were used in the analysis. Then, the same model is fitted to obtain posteriors on the parameters. This should provide the perfect pareto test values.
+
+```{r}
+rm(list=ls())
+source('HILL_BiOp_functions.R')
+
+library(jagsUI)
+library(bayesplot)
+library(dplyr)
+library(loo)
+```
+
+Create data:
+```{r}
+Lnorm_Negbin <- readRDS('RData/SSAR1_lnorm_negbin_var_theta_JM_1999_jagsUI_2018-09-25.rds')
+
+data.1 <- Lnorm_Negbin$data.1
+means <- Lnorm_Negbin$jm$mean
+theta.1 <- means$theta.1
+theta.2 <- means$theta.2
+sigma.1 <- means$sigma.pro1
+sigma.2 <- means$sigma.pro2
+r <- means$r
+mu <- means$mu
+
+m <- Lnorm_Negbin$jags.data$m
+
+set.seed(123)
+X <- p <- y <- vector(mode = "numeric", length = length(m))
+X[1] <- mu
+y[1] <- rnbinom(1, size = r, prob = r/(r + exp(X[1])))
+
+for (k in 2:length(m)){
+  theta <- ifelse(m[k] < 8, theta.1, theta.2)
+  sigma <- ifelse(m[k] < 10 & m[k] > 4, sigma.1, sigma.2)
+  X.mean <- theta * X[k-1]
+  X[k] <- rlnorm(1, meanlog = X.mean, sdlog = sigma)
+  
+  lambda <- exp(X[k])
+  p[k] <- r/(r + lambda)
+  y[k] <- rnbinom(1, size = r, prob = p[k])
+}
+
+```
+
+Then analyze the data and run "loo".
+
+```{r}
+if (!file.exists("RData/RData/SSAR1_lnorm_negbin_loo_test.rds")){
+  MCMC.n.chains <- 5
+  MCMC.n.samples <- 250000
+  MCMC.n.burnin <- 150000
+  MCMC.n.thin <- 50
+  
+  MCMC.params <- list(n.chains = MCMC.n.chains,
+                      n.samples = MCMC.n.samples,
+                      n.burnin = MCMC.n.burnin,
+                      n.thin = MCMC.n.thin)
+  
+  jags.data <- list(y = y,
+                    m = m,
+                    T = length(m))
+  
+  #load.module('dic')
+  jags.params <- c('theta.1', "theta.2", 
+                   'sigma.pro1', 'sigma.pro2', "r",
+                   'mu', 'X', 'deviance', 'loglik')
+  
+  jm <- jags(jags.data,
+             inits = NULL,
+             parameters.to.save= jags.params,
+             model.file = 'models/model_SSAR1_lnorm_negbin_var_theta.txt',
+             n.chains = MCMC.n.chains,
+             n.burnin = MCMC.n.burnin,
+             n.thin = MCMC.n.thin,
+             n.iter = MCMC.n.samples,
+             DIC = T, parallel=T)
+  
+  #g.diag1 <- gelman.diag(jm$samples)
+  Rhat <- jm$Rhat
+  
+  loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
+  
+  # extract Xs - the state model
+  Xs.stats <- data.frame(low_X = jm$q2.5$X,
+                         median_X = jm$q50$X,
+                         high_X = jm$q97.5$X,
+                         time = data.1$Frac.Year,
+                         obsY = y,
+                         month = m,
+                         year = data.1$Year)
+  
+  Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
+                                                    low = sum(low_X),
+                                                    high = sum(high_X))
+  
+  
+  results<- list(jags.data = jags.data,
+                 Xs.stats = Xs.stats,
+                 MCMC.params = MCMC.params,
+                 Rhat = Rhat,
+                 jm = jm,
+                 loo.out = loo.out)
+  
+  saveRDS(results,
+          file = paste0('RData/SSAR1_lnorm_negbin_loo_test.rds'))
+} else {
+  results <- readRDS(file = "RData/SSAR1_lnorm_negbin_loo_test.rds")
+}
+
+```
+
+and look at the results
+
+```{r}
+Xs.stats <- results$Xs.stats
+
+p.1 <- ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(high_X)), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = exp(median_X)), color = "red",
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(median_X)), color = "red",
+            alpha = 0.5) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = y), color = "green",
+             alpha = 0.5)
+
+base_theme <- ggplot2::theme_get()
+library(bayesplot)
+
+# set back to the base theme:
+ggplot2::theme_set(base_theme)
+mcmc_trace(jm$samples, c('theta.1', "theta.2", "mu",
+                         "sigma.pro1", "sigma.pro2", "r"))
+mcmc_dens(jm$samples, c('theta.1', "theta.2", "mu",
+                        "sigma.pro1", "sigma.pro2", "r"))
+
+```
+

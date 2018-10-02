@@ -17,24 +17,22 @@ model{
 
         # one variance for May - Sep, another for the rest
         tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
-        X[t] ~ dlnorm(predX[t], tau.pro[t])
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
 
 		# observation
 		y[t] ~ dnegbin(p[t], r)
-        p[t] <- r/(r + lambda[t])
+        p[t] <- r/(r + X[t])
         
-        lambda[t] <- exp(X[t])
-
         loglik[t] <- log(dnegbin(y[t], p[t], r))
+        
     }
 
     X[1] <- mu
-    predY[1] <- exp(X[1])
-    y[1] ~ dnegbin(p[1], r)
-    p[1] <- r/(r + lambda[1])
-    lambda[1] <- exp(X[1])
-
-    mu ~ dnorm(0, 0.1)
+    y[1] ~ dnegbin(p[1], r[1])
+    p[1] <- r[1]/(r[1] + X[1])
+    
+    mu ~ dpois(400)
+    
     sigma.pro1 ~ dgamma(0.1, 0.01)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
 
@@ -43,6 +41,6 @@ model{
 
     r ~ dgamma(0.1, 0.01)
 
-    theta.1 ~ dnorm(0, 1)
-    theta.2 ~ dnorm(0, 1)
+    theta.1 ~ dnorm(0, 0.01)
+    theta.2 ~ dnorm(0, 0.01)
 }
