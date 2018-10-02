@@ -14,8 +14,8 @@ save.fig <- T
 plot.fig <- T
 
 MCMC.n.chains <- 5
-MCMC.n.samples <- 250000
-MCMC.n.burnin <- 150000
+MCMC.n.samples <- 500000
+MCMC.n.burnin <- 350000
 MCMC.n.thin <- 50
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
@@ -148,12 +148,12 @@ results <- list(data.1 = data.1.JM,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_norm_negbin_var_theta_1999_v2.png',
+         filename = 'figures/predicted_counts_JM_norm_negbin_var_theta_1999.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-       file = paste0('RData/SSAR1_norm_negbin_var_theta_JM_1999_', Sys.Date(), '_v2.rds'))
+       file = paste0('RData/SSAR1_norm_negbin_var_theta_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
