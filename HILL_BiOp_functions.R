@@ -42,7 +42,6 @@ pareto.k.diag <- function(jm, MCMC.params, jags.data){
   
 >>>>>>> 6bd6ecf3e1a4447aa2dd88f258ea4d68be8d5fa8
   Reff <- relative_eff(exp(loglik.obs), 
-                       chain_id = rep(1:MCMC.params$n.chains, each = n.per.chain))
                        chain_id = rep(1:MCMC.params$n.chains, 
                                       each = n.per.chain))
   
