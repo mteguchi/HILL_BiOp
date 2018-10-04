@@ -70,7 +70,8 @@ jags.data <- list(y = data.1.JM$Nests,
                   T = nrow(data.1.JM))
 
 #load.module('dic')
-jags.params <- c('theta.1', "theta.2", 'sigma.pro1', 'sigma.pro2', "r",
+jags.params <- c('theta.1', "theta.2", 
+                 'sigma.pro1', 'sigma.pro2', "r",
                  'mu', 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
@@ -133,27 +134,28 @@ p.1 <- ggplot() +
              alpha = 0.5)
 
 
-results.JM_SSAR1_month_var_theta <- list(data.1 = data.1.JM,
-                                         jags.data = jags.data,
-                                         Xs.stats = Xs.stats,
-                                         Xs.year = Xs.year,
-                                         ys.stats = ys.stats,
-                                         tic = tic,
-                                         toc = toc,
-                                         dif.time = dif.time,
-                                         Sys = Sys,
-                                         MCMC.params = MCMC.params,
-                                         Rhat = Rhat,
-                                         jm = jm,
-                                         loo.out = loo.out)
+results <- list(data.1 = data.1.JM,
+                jags.data = jags.data,
+                Xs.stats = Xs.stats,
+                Xs.year = Xs.year,
+                ys.stats = ys.stats,
+                tic = tic,
+                toc = toc,
+                dif.time = dif.time,
+                Sys = Sys,
+                MCMC.params = MCMC.params,
+                Rhat = Rhat,
+                jm = jm,
+                loo.out = loo.out)
+
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_lnorm_negbin_var_theta_1999_jagsUI.png',
+         filename = 'figures/predicted_counts_JM_lnorm_negbin_var_theta_1999.png',
          dpi = 600)
 
 if (save.RData)
-  saveRDS(results.JM_SSAR1_month_var_theta,
-       file = paste0('RData/SSAR1_lnorm_negbin_var_theta_JM_1999_jagsUI_', Sys.Date(), '.rds'))
+  saveRDS(results,
+       file = paste0('RData/SSAR1_lnorm_negbin_var_theta_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

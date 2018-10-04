@@ -7,8 +7,11 @@ library(jagsUI)
 library(bayesplot)
 library(loo)
 
-theta.1 <- 1.0005  # increasing months
-sigma.1 <- 10  # SD 1
+theta.1 <- 1.004  # increasing months
+theta.2 <- 0.84  # decreasing months
+sigma.1 <- 123  # SD 1
+sigma.2 <- 30   # SD 2
+sigma.obs <- 20
 mu <- 400       # X[1]
 r <- 30         # Negative Binomial "size" parameter 
 
@@ -16,24 +19,34 @@ m <- rep(c(1:12), 21)   # months of each year
 
 # simulate data:
 set.seed(123)
-X <- p <- y <- vector(mode = "numeric", length = length(m))
+X <- p <- y <- theta <- vector(mode = "numeric", length = length(m))
 X[1] <- mu
 p[1] <- r/(r + X[1])
 y[1] <- rnbinom(1, size = r, prob = p[1])
 
 for (k in 2:length(m)){
-
-  X.mean <- theta.1 * X[k-1]
+  # slope is theta.1 when month is Jan through July, after July, it is theta.2
+  theta[k] <- ifelse(m[k] < 8, theta.1, theta.2)
+  
+  # SD is sigma.1 between May and September, it is sigma.2 otherwise
+  #sigma <- ifelse(m[k] < 10 & m[k] > 4, sigma.1, sigma.2)
+  
+  X.mean <- theta[k] * X[k-1]
   
   # Could have used log-normal to avoid negative values ... 
-  X[k] <- round(abs(rnorm(1, mean = X.mean, sd = sigma.1)))
-
+  X[k] <- rnorm(1, mean = X.mean, sd = sigma.2)
+  if (X[k] < 0){
+    while (X[k] < 0) {
+      X[k] <- rnorm(1, mean = X.mean, sd = sigma.2)
+    }
+    
+  }
   # compute the "probability" for the negative binomial
-  #p[k] <- r/(r + X[k])  # this is the inverse... no?
-  p[k] <- X[k]/(r + X[k])
+  #p[k] <- r/(r + X[k])
   
   # create "Observed" value.
-  y[k] <- rnbinom(1, size = r, prob = p[k])
+  #y[k] <- rnbinom(1, size = r, prob = p[k])
+  y[k] <- round(abs(rnorm(1, mean = X[k], sd = sigma.obs)))
 }
 
 # Run jags on the recorded data (y)
@@ -47,38 +60,40 @@ jags.data <- list(y = y,
                   m = m,
                   T = length(m))
 
-jags.params <- c('theta.1', 
+jags.params <- c('theta.1', "theta.2",
                  'sigma.pro', "r",
                  'mu', 'X', 'deviance', 'loglik')
 
 jags.model <- cat("model{
 	for (t in 2:T){
-    # process: 
-    predX[t] <- theta.1 * X[t-1]
+    # process: increasing before August, decreasing after July
+    theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
+    predX[t] <- theta[t] * X[t-1]
                   
-    # one variance 
+    # one variance
     X[t] ~ dnorm(predX[t], tau.pro)T(0,)
                   
     # observation
     y[t] ~ dnegbin(p[t], r)
-    p[t] <- X[t]/(r + X[t])
+    p[t] <- r/(r + X[t])
                   
     loglik[t] <- logdensity.negbin(y[t], p[t], r)
                   
  }
                   
  X[1] <- mu
- y[1] ~ dnegbin(p[1], r)
- p[1] <- X[1]/(r + X[1])
+ y[1] ~ dnegbin(p[1], r[1])
+ p[1] <- r[1]/(r[1] + X[1])
                   
- mu ~ dunif(350, 450)
+ mu ~ dpois(400)
                   
  sigma.pro ~ dgamma(0.1, 0.01)
  tau.pro <- 1/(sigma.pro * sigma.pro)
                   
- r ~ dgamma(0.1, 0.01)
+ r ~ dunif(10, 100)
                   
  theta.1 ~ dnorm(0, 0.01)
+ theta.2 ~ dnorm(0, 0.01)
 }", file = "jags_model.txt")
 
 jm <- jags(jags.data,
@@ -97,10 +112,8 @@ loglik.obs <- jm$sims.list$loglik[, !is.na(jags.data$y)]
 loglik.obs <- loglik.obs[, colSums(is.na(loglik.obs)) == 0]
 
 Reff <- relative_eff(exp(loglik.obs), 
-                     chain_id = rep(1:MCMC.n.chains, 
+                     chain_id = rep(1:MCMC.params$n.chains, 
                                     each = n.per.chain))
 
 loo.out <- loo(loglik.obs, r_eff = Reff)
-
-save(list = ls(), file = "RData/loo_test_norm_negbin.RData")
 
