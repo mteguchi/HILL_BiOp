@@ -7,6 +7,7 @@ Sys <- Sys.info()
 source('HILL_BiOp_functions.R')
 library(jagsUI)
 library(coda)
+library(dplyr)
 
 
 save.RData <- T
