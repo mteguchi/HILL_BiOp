@@ -1,0 +1,45 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, one theta and two variances 
+
+model{
+	for (t in 2:T){
+		# process: 
+        predX[t] <- theta.1 * X[t-1]
+
+        # one variance for May - Sep, another for the rest
+        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
+        X[t] ~ dlnorm(predX[t], tau.pro[t])
+
+		# observation
+		y[t] ~ dnegbin(p[t], r)
+        p[t] <- r/(r + lambda[t])
+        
+        lambda[t] <- exp(X[t])
+
+        loglik[t] <- logdensity.negbin(y[t], p[t], r)
+    }
+
+    X[1] <- mu
+    predY[1] <- exp(X[1])
+    y[1] ~ dnegbin(p[1], r)
+    p[1] <- r/(r + lambda[1])
+    lambda[1] <- exp(X[1])
+
+    mu ~ dnorm(0, 0.1)
+    sigma.pro1 ~ dgamma(0.1, 0.01)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+
+    sigma.pro2 ~ dgamma(0.1, 0.01)
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+
+    r ~ dgamma(0.1, 0.01)
+
+    theta.1 ~ dnorm(0, 1)
+}
