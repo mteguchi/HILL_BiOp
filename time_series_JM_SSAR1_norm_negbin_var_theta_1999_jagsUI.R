@@ -153,7 +153,7 @@ if (save.fig)
 
 if (save.RData)
   saveRDS(results,
-       file = paste0('RData/SSAR1_norm_negbin_var_theta_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_norm_negbin_var_theta_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -164,6 +164,6 @@ if (plot.fig){
   mcmc_trace(jm$samples, c('theta.1', "theta.2", "mu", "r",
                            "sigma.pro1", "sigma.pro2"))
   mcmc_dens(jm$samples, c('theta.1', "theta.2", "mu",
-                          "sigma.pro1", "sigma.pro2"))
+                          "sigma.pro1", "sigma.pro2", "r"))
 
 }

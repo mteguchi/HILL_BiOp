@@ -8,7 +8,7 @@ library(bayesplot)
 library(loo)
 
 theta.1 <- 1.004  # increasing months
-theta.2 <- 0.84  # decreasing months
+theta.2 <- 0.996  # decreasing months
 sigma.1 <- 123  # SD 1
 sigma.2 <- 30   # SD 2
 sigma.obs <- 20
@@ -70,7 +70,7 @@ jags.model <- cat("model{
                   
     # observation
     y[t] ~ dnegbin(p[t], r)
-    p[t] <- r/(r + exp(X[t]))
+    p[t] <- X[t]/(r + X[t])
                   
     loglik[t] <- logdensity.negbin(y[t], p[t], r)
                   
@@ -78,7 +78,7 @@ jags.model <- cat("model{
                   
  X[1] <- mu
  y[1] ~ dnegbin(p[1], r)
- p[1] <- r/(r + X[1])
+ p[1] <- X[1]/(r + X[1])
                   
  mu ~ dpois(400)
                   
@@ -111,4 +111,5 @@ Reff <- relative_eff(exp(loglik.obs),
                                     each = n.per.chain))
 
 loo.out <- loo(loglik.obs, r_eff = Reff)
+save(list = ls(), file = "RData/loo_test_norm_negbin_simple3.RData")
 

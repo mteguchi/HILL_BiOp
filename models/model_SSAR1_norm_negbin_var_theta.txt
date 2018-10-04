@@ -23,15 +23,15 @@ model{
 		y[t] ~ dnegbin(p[t], r)
         p[t] <- r/(r + X[t])
         
-        loglik[t] <- log(dnegbin(y[t], p[t], r))
+        loglik[t] <- logdensity.negbin(y[t], p[t], r)
         
     }
 
     X[1] <- mu
-    y[1] ~ dnegbin(p[1], r[1])
-    p[1] <- r[1]/(r[1] + X[1])
+    y[1] ~ dnegbin(p[1], r)
+    p[1] <- r/(r + X[1])
     
-    mu ~ dpois(400)
+    mu ~ dunif(350, 450)
     
     sigma.pro1 ~ dgamma(0.1, 0.01)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
@@ -39,7 +39,7 @@ model{
     sigma.pro2 ~ dgamma(0.1, 0.01)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
-    r ~ dunif(10, 100)
+    r ~ dgamma(0.1, 0.01)
 
     theta.1 ~ dnorm(0, 0.01)
     theta.2 ~ dnorm(0, 0.01)

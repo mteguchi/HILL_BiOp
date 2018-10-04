@@ -21,17 +21,17 @@ model{
 
 		# observation
 		y[t] ~ dnegbin(p[t], r)
-        p[t] <- lambda[t]/(r + lambda[t])
+        p[t] <- r/(r + lambda[t])
         
         lambda[t] <- exp(X[t])
 
-        loglik[t] <- log(dnegbin(y[t], p[t], r))
+        loglik[t] <- logdensity.negbin(y[t], p[t], r)
     }
 
     X[1] <- mu
     predY[1] <- exp(X[1])
     y[1] ~ dnegbin(p[1], r)
-    p[1] <- lambda[1]/(r + lambda[1])
+    p[1] <- r/(r + lambda[1])
     lambda[1] <- exp(X[1])
 
     mu ~ dnorm(0, 0.1)

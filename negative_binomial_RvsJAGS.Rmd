@@ -1,0 +1,67 @@
+---
+title: "Negative binomial distribution in R and jags"
+output: html_notebook
+---
+
+This document compares how negative binomial distribution is defined in R and jags. Specifically, when the distribution is defined in terms of mean (mu) and "dispersion" parameter (r; it is also called "size" parameter), the probability of occurrence (p) is defined as the probability of "success" in R and jags, even though the density is computed for the "failures." This is the standard in defining negative binomial distribution but seems confusing... 
+
+In the R help document, it is stated that "An alternative parametrization (often used in ecology) is by the mean mu (see above), and size, the dispersion parameter, where prob = size/(size+mu). The variance is mu + mu^2/size in this parametrization."  The mean (mu) is defined as n(1-p)/p, where the density of the distribution with size = n and probability = p is defined as p(x|n, p) = (G(x+n)/(G(n) x!))(p^n)((1-p)^x), x = 0, 1, ..., n and 0 < p <= 1.  G denotes the gamma function. I'm not sure if the upper bound of x should be n.  In the independent Bernoulli trial sense, this equation states that x failures and n successes, where p is defined as the probability of "success." However, the density is computed for the x failures. So, for example, probability of # failures = 5, given # success = 2 and prob of success = 0.4 is
+
+```{r}
+dnbinom(x = 5, size = 2, prob = 0.4)
+```
+
+The same density should be computes using the definition
+
+```{r}
+x <- 5
+n <- 2
+p <- 0.4
+(gamma(x + n)/(gamma(n) * factorial(x))) * (p^n) * ((1 - p)^x)
+```
+
+In this example, n < x. So, the upper bound of x does not have to be n. (error in R help) The important point here is that the probability (p) is defined with respect to "success", which goes with the "size" parameter (a.k.a. dispersion parameter). 
+
+In jags, this is also the case.
+
+```{r}
+library(jagsUI)
+MCMC.n.chains <- 1
+MCMC.n.samples <- 10
+MCMC.n.burnin <- 5
+MCMC.n.thin <- 1
+
+jags.data <- list(x = 5,
+                  p = 0.4,
+                  r = 2)
+
+jags.params <- c('loglik')
+
+jags.model <- cat("model{
+    loglik <- logdensity.negbin(x, p, r)
+
+}", file = "jags_model_negbin.txt")
+
+jm <- jags(jags.data,
+           inits = NULL,
+           parameters.to.save= jags.params,
+           model.file = 'jags_model_negbin.txt',
+           n.chains = MCMC.n.chains,
+           n.burnin = MCMC.n.burnin,
+           n.thin = MCMC.n.thin,
+           n.iter = MCMC.n.samples,
+           DIC = T, parallel=T)
+```
+
+We can compute the density from the log-likelihood.
+
+```{r}
+exp(jm$samples[[1]][1,])
+```
+
+This is identical to the result from R... 
+
+So... what happens here is the probability (p) is defined as the probability of "success".
+
+In Wikipedia, the probability is defined as the probability of "failure", which makes more sense... 
+

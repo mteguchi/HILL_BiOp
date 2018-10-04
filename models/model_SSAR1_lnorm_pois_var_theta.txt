@@ -23,7 +23,7 @@ model{
 		predY[t] <- exp(X[t])
 		y[t] ~ dpois(exp(X[t]))
 
-        loglik[t] <- log(dpois(y[t], exp(X[t])))
+        loglik[t] <- logdensity.pois(y[t], exp(X[t])))
     }
 
     X[1] <- mu
