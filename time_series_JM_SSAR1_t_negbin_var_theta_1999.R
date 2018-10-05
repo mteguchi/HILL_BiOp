@@ -7,6 +7,8 @@ Sys <- Sys.info()
 source('HILL_BiOp_functions.R')
 library(jagsUI)
 library(coda)
+library(ggplot2)
+library(loo)
 
 
 save.RData <- T
@@ -153,7 +155,7 @@ if (save.fig)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_norm_t_var_theta_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_t_negbin_var_theta_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

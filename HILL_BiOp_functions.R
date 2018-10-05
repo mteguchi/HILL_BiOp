@@ -38,12 +38,16 @@ pareto.k.diag <- function(jm, MCMC.params, jags.data){
   loglik.obs <- loglik.obs[, colSums(is.na(loglik.obs)) == 0]
 
   #loglik.obs <- jm$sims.list$loglik[, 2:jags.data$T]
+  # cores = 1 is needed in the relative_eff function if the number of cores was set to more than
+  # 1 with options(mc.cores = parallel::detectCores()) or something similear. See also here:
+  # https://discourse.mc-stan.org/t/error-in-loo-relative-eff-related-to-options-mc-cores/5610/2
   
   Reff <- relative_eff(exp(loglik.obs), 
                        chain_id = rep(1:MCMC.params$n.chains, 
-                                      each = n.per.chain))
+                                      each = n.per.chain),
+                       cores = 1)
   
-  loo.out <- loo(loglik.obs, r_eff = Reff)
+  loo.out <- loo(loglik.obs, r_eff = Reff, cores = 1)
   return(list(loglik.obs = loglik.obs,
               Reff = Reff,
               loo.out = loo.out))

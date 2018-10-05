@@ -34,7 +34,7 @@ model{
     y[1] ~ dnegbin(p[1], r)
     p[1] <- r/(r + X[1])
     
-    mu ~ dunif(350, 450)
+    mu ~ dnorm(400, 0.01)T(0,)
     
     sigma.pro1 ~ dgamma(0.1, 0.01)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
@@ -42,8 +42,8 @@ model{
     sigma.pro2 ~ dgamma(0.1, 0.01)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
-    r ~ dgamma(0.1, 0.01)
-
+    #r ~ dgamma(0.1, 0.01)
+    r ~ dnorm(0.0, 0.01)T(0,)
     theta.1 ~ dnorm(0, 0.01)
     theta.2 ~ dnorm(0, 0.01)
 }
