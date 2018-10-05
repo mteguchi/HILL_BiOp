@@ -8,7 +8,8 @@ source('HILL_BiOp_functions.R')
 library(jagsUI)
 library(coda)
 library(dplyr)
-
+library(ggplot2)
+library(loo)
 
 save.RData <- T
 save.fig <- T
