@@ -72,13 +72,13 @@ jags.data <- list(y = data.1.JM$Nests,
                   T = nrow(data.1.JM))
 
 #load.module('dic')
-jags.params <- c('theta.1', "theta.2", 'sigma.pro1', "r",
+jags.params <- c('theta.1', 'sigma.pro1', "r",
                  'mu', 'y', 'X', 'deviance', 'loglik')
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_t_negbin_theta.txt',
+           model.file = 'models/model_SSAR1_t_negbin.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1.JM,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_t_negbin_theta_1999.png',
+         filename = 'figures/predicted_counts_JM_t_negbin_1999.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_t_negbin_theta_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_t_negbin_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -163,9 +163,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c('theta.1', "theta.2", "mu", "r",
+  mcmc_trace(jm$samples, c('theta.1',  "mu", "r",
                            "sigma.pro1"))
-  mcmc_dens(jm$samples, c('theta.1', "theta.2", "mu",
+  mcmc_dens(jm$samples, c('theta.1', "mu",
                           "sigma.pro1", "r"))
 
 }
