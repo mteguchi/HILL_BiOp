@@ -1,0 +1,45 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, I added another theta. Two thetas are used for increasing
+# and decreasing months within each year. counts are in log scale.
+
+model{
+	for (t in 2:T){
+		# process: increasing before August, decreasing after July
+        theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
+        predX[t] <- theta[t] * X[t-1]
+
+        # one variance for May - Sep, another for the rest
+        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation
+		y[t] ~ dnorm(X[t], tau.obs)
+        
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
+        
+    }
+
+    X[1] <- mu
+    y[1] ~ dnorm(X[1], tau.obs)
+    
+    mu ~ dnorm(400, 0.01)T(0,)
+    
+    sigma.pro1 ~ dgamma(0.1, 0.01)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+
+    sigma.pro2 ~ dgamma(0.1, 0.01)
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+
+    sigma.obs ~ dgamma(0.1, 0.01)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta.1 ~ dnorm(0, 0.01)
+    theta.2 ~ dnorm(0, 0.01)
+}
