@@ -34,7 +34,7 @@ model{
 		# observation
 		y[t] ~ dt(X[t], tau.obs, df)T(0,)
         
-        loglik[t] <- logdensity.t(y[t], X[t], tau.obs)
+        loglik[t] <- logdensity.t(y[t], X[t], tau.obs, df)
         
     }
 
