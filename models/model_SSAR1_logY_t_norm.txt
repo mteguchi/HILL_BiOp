@@ -1,0 +1,54 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is t and the observation model is also normal. The degrees-of-freedom parameter for 
+# the t distribution is also estimated. 
+#
+# This is the simplest t-norm model with one variance and one slope.
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1)T(0,) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+	for (t in 2:T){
+		# process: 
+        predX[t] <- theta.1 * X[t-1]
+
+        # one variance for May - Sep, another for the rest
+        X[t] ~ dt(predX[t], tau.pro1, df)T(0,)
+
+		# observation
+		y[t] ~ dnorm(X[t], tau.obs)
+        
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
+        
+    }
+
+    X[1] <- mu
+    y[1] ~ dnorm(X[1], tau.obs)
+    
+    mu ~ dnorm(5, 0.1)T(0,)
+    
+    sigma.pro1 ~ dunif(0.0, 20)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+
+    sigma.obs ~ dunif(0.0, 20)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta.1 ~ dnorm(0, 0.1)
+
+    df ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
+    # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
+    
+}
