@@ -68,14 +68,14 @@ data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
 nests <- reshape2::acast(data.1.JM, Year ~ Month, value.var = "Nests")
 months <- matrix(seq(1, 12), nrow = nrow(nests), ncol = 12, byrow = T)
 
-jags.data <- list(y = nests,
+jags.data <- list(y = log(nests),
                   m = months,
                   T = 12,
                   T0 = nrow(nests))
 
 #load.module('dic')
 jags.params <- c("r", 'sigma.Z', "sigma.X", "sigma.obs",
-                 "p.prop1", "p.prop2", "df", "y", "X", 
+                 "p.pro1", "p.pro2", "df", "y", "X", 
                  "deviance", "loglik")
 
 jm <- jags(jags.data,
@@ -91,13 +91,17 @@ jm <- jags(jags.data,
 #g.diag1 <- gelman.diag(jm$samples)
 Rhat <- jm$Rhat
 n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+# the first year is not used in the loop; t starts from 2 to T, so we need to 
+# remove the first year from the data to extract loglikelihoods
+
+data.used <- jags.data$y[2:nrow(jags.data$y), ]
 loglik.obs <- matrix(NA, nrow = n.per.chain * MCMC.params$n.chains, 
-                     ncol = sum(!is.na(jags.data$y)))
+                     ncol = sum(!is.na(data.used)))
 
 # there has to be a better way to do this but can't figure out now... 10/11/2018
 for (k in 1:nrow(loglik.obs)){
-  loglik.1 <- t(jm$sims.list$loglik[k,,])
-  loglik.2 <- loglik.1[t(!is.na(jags.data$y))]
+  loglik.1 <- t(jm$sims.list$loglik[k, 2:nrow(jm$sims.list$loglik[k,,]),])
+  loglik.2 <- loglik.1[t(!is.na(data.used))]
   loglik.obs[k,] <- loglik.2
 }
 
@@ -182,8 +186,8 @@ if (plot.fig){
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
   mcmc_trace(jm$samples, c("r", 'sigma.Z', "sigma.X", "sigma.obs",
-                           "p.prop1", "p.prop2", "df"))
+                           "p.pro1", "p.pro2", "df"))
   mcmc_dens(jm$samples, c("r", 'sigma.Z', "sigma.X", "sigma.obs",
-                           "p.prop1", "p.prop2", "df"))
+                           "p.pro1", "p.pro2", "df"))
 
 }
