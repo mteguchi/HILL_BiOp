@@ -23,7 +23,7 @@
 model{
 	for (t in 2:T){
 		# process: 
-        predX[t] <- theta.1 * X[t-1]
+        predX[t] <- theta.1 + X[t-1]
 
         # one variance for May - Sep, another for the rest
         tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)

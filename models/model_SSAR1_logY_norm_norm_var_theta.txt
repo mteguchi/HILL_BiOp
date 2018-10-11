@@ -24,7 +24,7 @@ model{
 	for (t in 2:T){
 		# process: increasing before August, decreasing after July
         theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
-        predX[t] <- theta[t] * X[t-1]
+        predX[t] <- theta[t] + X[t-1]
 
         # one variance for May - Sep, another for the rest
         tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)

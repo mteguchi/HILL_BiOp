@@ -21,7 +21,7 @@
 model{
 	for (t in 2:T){
 		# process: 
-        predX[t] <- theta.1 * X[t-1]
+        predX[t] <- theta.1 + X[t-1]
 
         # one variance for May - Sep, another for the rest
         X[t] ~ dnorm(predX[t], tau.pro1)T(0,)

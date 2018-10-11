@@ -65,20 +65,22 @@ data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
   filter(Year > 1998) -> data.1.JM
 #data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
-data.1.JM <- data.1.JM[5:nrow(data.1.JM),]
+nests <- reshape2::acast(data.1.JM, Year ~ Month, value.var = "Nests")
+months <- matrix(seq(1, 12), nrow = nrow(nests), ncol = 12, byrow = T)
 
-jags.data <- list(y = log(data.1.JM$Nests),
-                  m = data.1.JM$Month,
-                  T = nrow(data.1.JM))
+jags.data <- list(y = nests,
+                  m = months,
+                  T = 12,
+                  T0 = nrow(nests))
 
 #load.module('dic')
-jags.params <- c("theta.1", 'sigma.pro1', "sigma.pro2", "sigma.obs",
-                 "mu", "df", "y", "X", "deviance", "loglik")
+jags.params <- c("beta0", "beta1", "beta2","p.pro1", "p.pro2", "sigma.obs",
+                 "sigma.Z", "df", "y", "X", "Z", "deviance", "loglik")
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_t_var_thetaM.txt',
+           model.file = 'models/model_SS_poly2trend_norm_bin_t.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -87,11 +89,28 @@ jm <- jags(jags.data,
 
 #g.diag1 <- gelman.diag(jm$samples)
 Rhat <- jm$Rhat
+n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+loglik.obs <- matrix(NA, nrow = n.per.chain * MCMC.params$n.chains, 
+                     ncol = sum(!is.na(jags.data$y)))
+
+# there has to be a better way to do this but can't figure out now... 10/11/2018
+for (k in 1:nrow(loglik.obs)){
+  loglik.1 <- t(jm$sims.list$loglik[k,,])
+  loglik.2 <- loglik.1[t(!is.na(jags.data$y))]
+  loglik.obs[k,] <- loglik.2
+}
+
+Reff <- relative_eff(exp(loglik.obs), 
+                     chain_id = rep(1:MCMC.params$n.chains, 
+                                    each = n.per.chain),
+                     cores = 1)
+
+loo.out <- loo(loglik.obs, r_eff = Reff, cores = 1)
 
 # extract ys
-ys.stats <- data.frame(low_y = jm$q2.5$y,
-                       median_y = jm$q50$y,
-                       high_y = jm$q97.5$y,
+ys.stats <- data.frame(low_y = as.vector(t(jm$q2.5$y)),
+                       median_y = as.vector(t(jm$q50$y)),
+                       high_y = as.vector(t(jm$q97.5$y)),
                        time = data.1.JM$Frac.Year,
                        obsY = data.1.JM$Nests,
                        month = data.1.JM$Month,
@@ -99,9 +118,9 @@ ys.stats <- data.frame(low_y = jm$q2.5$y,
 
 
 # extract Xs - the state model
-Xs.stats <- data.frame(low_X = jm$q2.5$X,
-                       median_X = jm$q50$X,
-                       high_X = jm$q97.5$X,
+Xs.stats <- data.frame(low_X = as.vector(t(jm$q2.5$X)),
+                       median_X = as.vector(t(jm$q50$X)),
+                       high_X = as.vector(t(jm$q97.5$X)),
                        time = data.1.JM$Frac.Year,
                        obsY = data.1.JM$Nests,
                        month = data.1.JM$Month,
@@ -111,8 +130,7 @@ Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
 
-loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
-  
+
 toc <- Sys.time()
 dif.time <- toc - tic
 
@@ -122,13 +140,13 @@ p.1 <- ggplot() +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), color = "red",
+            aes(x = time, y = high_X), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), color = "red",
+             aes(x = time, y = median_X), color = "red",
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), color = "red",
+            aes(x = time, y = median_X), color = "red",
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
@@ -150,12 +168,12 @@ results <- list(data.1 = data.1.JM,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_t_varM_theta_1999.png',
+         filename = 'figures/predicted_counts_JM_poly2trend_norm_bin_t_1999.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_t_varM_theta_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SS_poly2trend_norm_bin_t_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -163,9 +181,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
+  mcmc_trace(jm$samples, c("beta0", "beta1", "beta2", "p.pro1", "p.pro2",
                            "df"))
-  mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
+  mcmc_dens(jm$samples, c("beta0", "beta1", "beta2", "p.pro1", "p.pro2",
                           "df"))
 
 }

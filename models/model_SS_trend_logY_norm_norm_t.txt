@@ -1,0 +1,62 @@
+#
+# For this model, the natural log of raw counts were used as data (y). I add another 
+# level of hierarchy, which is the total number of females (Z). Z is a polynomial function
+# of order 2. 
+# The state model is normal and the observation model is t. The degrees-of-freedom parameter for 
+# the t distribution is also estimated. 
+#
+# data are in log scale.
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1)T(0,) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I use gamma(2, 0.5).
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+    for (t0 in 2:T0){
+        # The mean of the total abundance is changing with a constant slope r
+        mean.Z[t0] <- r + Z[t0-1]
+        # random error is added to the state value
+        Z[t0] ~ dnorm(mean.Z[t0], tau.Z)T(0,)
+        for (t in 1:T){
+            # the proportion of individuals counted is a fraction of total Z
+            p.pro[t0, t] <- ifelse(m[t0, t] < 10 && m[t0, t] > 4, p.pro1, p.pro2)
+            mean.X[t0, t] <- Z[t0] + p.pro[t0, t]        
+
+            # random error added
+            X[t0, t] ~ dnorm(mean.X[t0, t], tau.X)T(0,)       
+
+            # observation with wide tail
+            y[t0, t] ~ dt(X[t0, t], tau.obs, df)T(0,)
+            
+            # compute the observation likelihood for computing loo-elpd
+            loglik[t0, t] <- logdensity.t(y[t0, t], X[t0, t], tau.obs, df)
+        
+        }
+
+    }
+
+    # priors:
+    mu.Z1 ~ dnorm(6, 1)T(0,)
+    Z[1] <- mu.Z1
+
+    r ~ dnorm(0, 0.1)
+    # these are log(proportions), so they are bound by -inf and 0
+    p.pro1 ~ dnorm(0, 1)T(,0)
+    p.pro2 ~ dnorm(0, 1)T(,0)
+
+    sigma.Z ~ dgamma(2, 0.5)
+    tau.Z <- 1/(sigma.Z * sigma.Z)
+
+    sigma.X ~ dgamma(2, 0.5)
+    tau.X <- 1/(sigma.X * sigma.X)
+
+    sigma.obs ~ dgamma(2, 0.5)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    df ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
+    # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
+    
+}
