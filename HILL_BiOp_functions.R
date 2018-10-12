@@ -8,10 +8,10 @@ ifelse(Sys.info()[1] == 'Linux',
        source('~/Documents/R/tools/TomosFunctions.R'),
        source('~/R/tools/TomosFunctions.R'))
 
-# library(ggplot2)
-# library(tidyverse)
-# library(lubridate)
-# library(loo)
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+library(loo)
 
 # extract.samples in TomosFunctions.R
 sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
