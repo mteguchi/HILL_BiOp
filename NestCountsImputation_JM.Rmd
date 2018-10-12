@@ -1,0 +1,206 @@
+---
+title: "Nest count imputation - Jamursba Medi"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source("HILL_BiOp_functions.R")
+```
+
+This document describes how leatherback turtle nest count data were imputed for Jamursba-Medi. All models were ran separately and results stored in .rds files. 
+
+We use the Bayesian state-space approach, where the mean of the state process is modeled with an auto-regressive model with time lag of one step (AR(1)). 
+
+M[t] = S[t] * X[t-1]
+
+where s[t] is the “slope” parameter between two consecutive counts (transformed into the natural log scale). When s[t] > 1, the counts increase whereas s[t] < 1, they decline. This slope parameter can be constant (s[t] = s for all t), grouped over some time periods (s[t] = s1 for some t, s[t] = s2 otherwise), function of other variables (s[t] = f(k), where k is a vector of one or more variables), or all different. The last option, i.e., s[t] is different for all t, probably is not useful as there would be too many parameters.  We consider the other three options in this study. 
+
+The state is modeled with a normal distribution.
+
+X[t] ~ N(M[t], v[t]),
+
+where v[t] is the variance of X[t]. The variance also can be modeled in a few different scenarios as was in the slope parameter. It can be constant (v[t] = v for all t), grouped over some time periods (v[t] = v1 for some t, v[t] = v2 otherwise), function of other variables (v[t] = f(z), where z is a vector of one or more variables), or all different. Again we consider the three options as before. 
+
+Given the state process, observations are modeled with normal or t distributions. 
+
+Y[t] ~ N(X[t], v.obs)
+
+Y[t] ~ t(X[t], v.obs, df)
+
+where v.obs is the observation variance and df is the degrees-of-freedom parameter of the t distribution. The observation variance is assumed to be constant throughout the dataset. In total 8 models were developed and predictive accuracy was compared to select the most accurate model (Table x).  Model selection process is explained in the subsequent section.  The analysis is conducted in the natural logarithm scale. We define the following:
+
+x[t] = ln(X[t])
+
+m[t] = ln(M[t])
+
+y[t] = ln(Y[t])
+
+s[t] = ln(S[t])
+
+The models were fit to datasets from turtle nesting beaches. Bayesian computations were conducted using jags through jagsUI package in R.  
+
+First model is the simplest; the state space is modeled with NOrmal distribution and observation is modeled also with normal distribution. No seasonal change in variance or slope is considered. Then, the model definitions become the following:
+
+m[t] = s + x[t-1]
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model1, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_JM_1999_2018-10-11.rds")
+M1.loo.out <- M$loo.out$loo.out
+M1.jm <- M$jm
+```
+
+Diagnostics of the expected log predictive density indicated that the model was not appropriate, where all estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(lapply(M$jm$Rhat, min, na.rm = T)), 3)```, mean = ```r signif(lapply(M$jm$Rhat, mean, na.rm = T)), 3)```, and maximum = ```r signif(lapply(M$jm$Rhat, max, na.rm = T)), 3)```). 
+
+Because of the poor predictive performance, we do not use this model for imputation.
+
+The second model is similar to the first except there were two slope parameters: one for January through July and another for August through December. These corresponded to before and after the peak of each nesting season in August. The model is as follows:
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model2, cache=T, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_theta_JM_1999_2018-10-11.rds")
+M2.loo.out <- M$loo.out$loo.out
+M2.jm <- M$jm
+```
+
+Diagnostics of the expected log predictive density indicated that the model was considerably better than the first model. The vast majority of estimated Pareto k parameter was less than 0.7 (```r sum(M2.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M2.loo.out$diagnostics$pareto_k))```. Convergence was reached for all monitored parameters (minimum = ```r signif(lapply(M$jm$Rhat, min, na.rm = T)), 3)```, mean = ```r signif(lapply(M$jm$Rhat, mean, na.rm = T)), 3)```, and maximum = ```r signif(lapply(M$jm$Rhat, max, na.rm = T)), 3)```).  
+
+The third model contained one slope and two variances: one for nesting season (May through September) and another for the non-nesting season (October through April). 
+
+m[t] = s + x[t-1] 
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model3, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_var_JM_1999_2018-10-11.rds")
+M3.loo.out <- M$loo.out$loo.out
+M3.jm <- M$jm
+
+```
+
+Similary to the first model, all estimated Pareto k statistics were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(lapply(M$jm$Rhat, min, na.rm = T)), 3)```, mean = ```r signif(lapply(M$jm$Rhat, mean, na.rm = T)), 3)```, and maximum = ```r signif(lapply(M$jm$Rhat, max, na.rm = T)), 3)```). We do not consider this model further.
+
+The fourth model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April)
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model4, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_var_theta_JM_1999_2018-10-11.rds")
+M4.loo.out <- M$loo.out$loo.out
+M4.jm <- M$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M4.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M4.loo.out$diagnostics$pareto_k))``` were larger than 0.7. 
+
+
+In Model 5, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model6, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_varM_theta_JM_1999_2018-10-12.rds")
+M5.loo.out <- M$loo.out$loo.out
+M5.jm <- M$jm
+
+```
+
+
+In Model 6, a unique slope and variance parameters were given to each month. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model6, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_norm_varM_thetaM_JM_1999_2018-10-12.rds")
+M6.loo.out <- M$loo.out$loo.out
+M6.jm <- M$jm
+
+```
+
+Model 5 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
+
+m[t] = s + x[t-1]
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model7, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_t_JM_1999_2018-10-12.rds")
+M7.loo.out <- M$loo.out$loo.out
+M7.jm <- M$jm
+```
+
+Model 6 is similar to the second except observations are modeled with t distribution.  These corresponded to before and after the peak of each nesting season in August. The model is as follows:
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model8, cache=T, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_t_theta_JM_1999_2018-10-11.rds")
+M8.loo.out <- M$loo.out$loo.out
+M8.jm <- M$jm
+```
+
+Diagnostics of the expected log predictive density indicated that the model was considerably better than the first model. The vast majority of estimated Pareto k parameter was less than 0.7 (```r sum(M6.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M6.loo.out$diagnostics$pareto_k))```. Convergence was reached for all monitored parameters (minimum = ```r signif(lapply(M$jm$Rhat, min, na.rm = T)), 3)```, mean = ```r signif(lapply(M$jm$Rhat, mean, na.rm = T)), 3)```, and maximum = ```r signif(lapply(M$jm$Rhat, max, na.rm = T)), 3)```).  
+
+The seventh model contained one slope and two variances: one for nesting season (May through September) and another for the non-nesting season (October through April) and t distribution for observations. 
+
+m[t] = s + x[t-1] 
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model9, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_t_var_JM_1999_2018-10-11.rds")
+M9.loo.out <- M$loo.out$loo.out
+M9.jm <- M$jm
+
+```
+
+Similary to the first model, all estimated Pareto k statistics were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(lapply(M$jm$Rhat, min, na.rm = T)), 3)```, mean = ```r signif(lapply(M$jm$Rhat, mean, na.rm = T)), 3)```, and maximum = ```r signif(lapply(M$jm$Rhat, max, na.rm = T)), 3)```). We do not consider this model further.
+
+The fourth model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April). Observations are modeled with t distribution.
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model10, cache=TRUE, include=TRUE}
+M <- readRDS("RData/SSAR1_logY_norm_t_var_theta_JM_1999_2018-10-11.rds")
+M10.loo.out <- M$loo.out$loo.out
+M10.jm <- M$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M8.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M8.loo.out$diagnostics$pareto_k))``` were larger than 0.7. 
+
+
