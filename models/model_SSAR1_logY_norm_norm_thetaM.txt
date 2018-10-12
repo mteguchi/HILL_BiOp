@@ -7,28 +7,30 @@
 # https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
 #
 # For this model, the natural log of raw counts were used as data (y). The state model
-# is normal and the observation model is also normal.
+# is normal and the observation model is t. The degrees-of-freedom parameter for 
+# the t distribution is also estimated. 
 #
-# This is the simplest model with one slope and one variance.
+# To accommodate increasing and decreasing months slope are treated as functions of months. 
+# For the variance, nesting and non-nesting seasons get separate parameters. 
 #
 # I used quite informative prior for X[1] ~ dnorm(5, 0.1)T(0,) although variance of 10 should 
 # be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
-# For all standard deviations (process and observation), I used uniform between 0 and 20, 
-# which should be wide enough in the log scale. 
+# For all standard deviations (process and observation), I use gamma(2, 0.5).
 #
 # I didn't see any reason to make the priors flatter because that would make convergence difficult
 # and did not gain anything in return. 
 
 model{
 	for (t in 2:T){
-		# process: 
-        predX[t] <- theta.1 + X[t-1]
+		# process: increasing before August, decreasing after July
+        theta[t] <- theta.1[m[t]]
+        predX[t] <- theta[t] + X[t-1]
 
         # one variance 
         X[t] ~ dnorm(predX[t], tau.pro1)T(0,)
 
 		# observation
-		y[t] ~ dnorm(X[t], tau.obs)
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
         
         loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
         
@@ -39,12 +41,14 @@ model{
     
     mu ~ dnorm(5, 0.1)T(0,)
     
+    for (k in 1:12){
+        theta.1[k] ~ dnorm(0, 1)
+    }
+
     sigma.pro1 ~ dgamma(2, 0.5)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
-
+    
     sigma.obs ~ dgamma(2, 0.5)
     tau.obs <- 1/(sigma.obs * sigma.obs)
-
-    theta.1 ~ dnorm(0, 0.1)
-
+    
 }

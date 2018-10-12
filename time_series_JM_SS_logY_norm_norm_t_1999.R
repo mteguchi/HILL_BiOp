@@ -10,6 +10,10 @@ library(coda)
 library(ggplot2)
 library(loo)
 
+# This one is not completed - currently, data are nest counts so it doesn't make sense
+# to have another level of hierarchy, i.e., Z. We need to get female counts for this model
+# to make sense... 
+
 
 save.RData <- T
 save.fig <- T
@@ -60,28 +64,33 @@ data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
   transmute(Year = Year.y,
             Month = Month_begin,
             Frac.Year = Frac.Year.y,
-            Nests = Nests) %>%
+            Nests = Nests,
+            Nest.Month = ifelse(Month < 4, Month + 9, Month - 3),
+            Nest.Year = ifelse(Month < 4, Year - 1, Year)) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 1998) -> data.1.JM
+  filter(Nest.Year > 1998) -> data.1.JM
 #data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
-nests <- reshape2::acast(data.1.JM, Year ~ Month, value.var = "Nests")
-months <- matrix(seq(1, 12), nrow = nrow(nests), ncol = 12, byrow = T)
+# Nest.Month starts April and ends March - April = 1, May = 2, ...
 
+nests <- reshape2::acast(data.1.JM, Nest.Year ~ Nest.Month, value.var = "Nests")
+nest.months <- matrix(seq(1, 12), nrow = nrow(nests), ncol = 12, byrow = T)
+
+# model needs to be changed for m values May - Sep is equal to 2 - 6 and
 jags.data <- list(y = log(nests),
-                  m = months,
+                  m = nest.months,
                   T = 12,
                   T0 = nrow(nests))
 
 #load.module('dic')
 jags.params <- c("r", 'sigma.Z', "sigma.X", "sigma.obs",
-                 "p.pro1", "p.pro2", "df", "y", "X", 
+                 "p.pro1", "p.pro2", "df", "y", "X", "Z",
                  "deviance", "loglik")
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SS_trend_logY_norm_norm_t.txt',
+           model.file = 'models/model_SSAR1_logY_norm_norm_t.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -118,7 +127,7 @@ ys.stats <- data.frame(low_y = as.vector(t(jm$q2.5$y)),
                        high_y = as.vector(t(jm$q97.5$y)),
                        time = data.1.JM$Frac.Year,
                        obsY = data.1.JM$Nests,
-                       month = data.1.JM$Month,
+                       month = data.1.JM$Nest.Month,
                        year = data.1.JM$Year)
 
 
@@ -131,6 +140,13 @@ Xs.stats <- data.frame(low_X = as.vector(t(jm$q2.5$X)),
                        month = data.1.JM$Month,
                        year = data.1.JM$Year)
 
+# extract Zs - the state model
+Zs.stats <- data.frame(low_Z = as.vector(t(jm$q2.5$Z)),
+                       median_Z = as.vector(t(jm$q50$Z)),
+                       high_Z = as.vector(t(jm$q97.5$Z)),
+                       year = unique(data.1.JM$Year))
+
+
 Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
@@ -139,8 +155,10 @@ toc <- Sys.time()
 dif.time <- toc - tic
 
 p.1 <- ggplot() +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
+  geom_point(data = Zs.stats,
+             aes(x = year, y = exp(median_Z)), color = "blue") +
+  geom_line(data = Zs.stats,
+             aes(x = year, y = exp(median_Z)), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
   geom_line(data = Xs.stats,
@@ -185,9 +203,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("r", 'sigma.Z', "sigma.X", "sigma.obs",
+  mcmc_trace(jm$samples, c('sigma.Z', "sigma.X", "sigma.obs",
                            "p.pro1", "p.pro2", "df"))
-  mcmc_dens(jm$samples, c("r", 'sigma.Z', "sigma.X", "sigma.obs",
+  mcmc_dens(jm$samples, c('sigma.Z', "sigma.X", "sigma.obs",
                            "p.pro1", "p.pro2", "df"))
 
 }

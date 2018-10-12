@@ -72,13 +72,13 @@ jags.data <- list(y = log(data.1.JM$Nests),
                   T = nrow(data.1.JM))
 
 #load.module('dic')
-jags.params <- c("theta.1", 'sigma.pro1', "sigma.pro2", "sigma.obs",
+jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
                  "mu", "df", "y", "X", "deviance", "loglik")
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_t_var_thetaM.txt',
+           model.file = 'models/model_SSAR1_logY_norm_t.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -87,6 +87,7 @@ jm <- jags(jags.data,
 
 #g.diag1 <- gelman.diag(jm$samples)
 Rhat <- jm$Rhat
+loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
 
 # extract ys
 ys.stats <- data.frame(low_y = jm$q2.5$y,
@@ -111,7 +112,6 @@ Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
                                                   high = sum(high_X))
 
-loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
   
 toc <- Sys.time()
 dif.time <- toc - tic
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1.JM,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_t_var_thetaM_1999.png',
+         filename = 'figures/predicted_counts_JM_logY_norm_t_1999.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_t_var_thetaM_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_t_JM_1999_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -163,9 +163,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
-                           "df"))
-  mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
-                          "df"))
+  mcmc_trace(jm$samples, c('theta.1', "mu", "sigma.obs",
+                           "sigma.pro1",  "df"))
+  mcmc_dens(jm$samples, c('theta.1', "mu", "sigma.obs",
+                          "sigma.pro1",  "df"))
 
 }

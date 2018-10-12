@@ -29,7 +29,7 @@ model{
 		# observation
 		y[t] ~ dt(X[t], tau.obs, df)T(0,)
         
-        loglik[t] <- logdensity.t(y[t], X[t], tau.obs)
+        loglik[t] <- logdensity.t(y[t], X[t], tau.obs, df)
         
     }
 
@@ -38,10 +38,10 @@ model{
     
     mu ~ dnorm(5, 0.1)T(0,)
     
-    sigma.pro1 ~ dunif(0.0, 20)
+    sigma.pro1 ~ dgamma(2, 0.5)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
 
-    sigma.obs ~ dunif(0.0, 20)
+    sigma.obs ~ dgamma(2, 0.5)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
     theta.1 ~ dnorm(0, 0.1)

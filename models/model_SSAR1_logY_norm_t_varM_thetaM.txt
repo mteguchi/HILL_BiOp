@@ -49,7 +49,7 @@ model{
         theta.1[k] ~ dnorm(0, 1)
     }
     
-    sigma.obs ~ dunif(0.0, 20)
+    sigma.obs ~ dgamma(2, 0.5)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
     df ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
