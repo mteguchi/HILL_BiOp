@@ -28,6 +28,23 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
+extract.posterior.jagsUI <- function(yr, Xs.stats, samples){
+  Xs.stats %>%
+    mutate(var.name = rownames(Xs.stats)) %>%
+    filter(year == yr) %>%
+    select(var.name) -> Xs.name
+  
+  all.samples <- do.call(rbind, samples)
+  Xnames <- apply(Xs.name, 
+                  FUN = function(x) paste0("X[", x, "]"), 
+                  MARGIN = 1)
+  
+  out.samples <- all.samples[, Xnames]
+  
+  return(list(samples = out.samples, var.names = Xnames))
+  
+}
+
 pareto.k.diag <- function(jm, MCMC.params, jags.data){
   
   n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
