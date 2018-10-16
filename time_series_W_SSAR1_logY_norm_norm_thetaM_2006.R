@@ -26,7 +26,7 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 # get JM data first:
-data.0 <- read.csv('data/JM_nests.csv')
+data.0 <- read.csv('data/W_nests.csv')
 # create regularly spaced time series:
 data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
                                        na.rm = T):max(data.0$Year_begin,
@@ -53,7 +53,7 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
          f_month = as.factor(Month),
          f_year = as.factor(Year),
          Frac.Year = Year + (Month_begin-0.5)/12,
-         Nests = JM.1) %>%
+         Nests = W.1) %>%
   select(Year, Month, Frac.Year, begin_date, Nests) %>%
   na.omit() %>%
   right_join(.,data.2, by = "begin_date") %>%
@@ -62,7 +62,7 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Frac.Year = Frac.Year.y,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 1998) -> data.1
+  filter(Year > 2005) -> data.1
 #data.1.2005 <- filter(data.1, YEAR > 2004)
 
 data.1 <- data.1[5:nrow(data.1),]
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_norm_thetaM_1999.png',
+         filename = 'figures/predicted_counts_W_logY_norm_norm_thetaM_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_thetaM_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_norm_thetaM_W_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

@@ -26,7 +26,7 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 # get JM data first:
-data.0 <- read.csv('data/JM_nests.csv')
+data.0 <- read.csv('data/W_nests.csv')
 # create regularly spaced time series:
 data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
                                        na.rm = T):max(data.0$Year_begin,
@@ -62,7 +62,7 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Frac.Year = Frac.Year.y,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 1998) -> data.1
+  filter(Year > 2005) -> data.1
 #data.1.2005 <- filter(data.1, YEAR > 2004)
 
 data.1 <- data.1[5:nrow(data.1),]
@@ -72,13 +72,13 @@ jags.data <- list(y = log(data.1$Nests),
                   T = nrow(data.1))
 
 #load.module('dic')
-jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
-                 "mu", "y", "X", "deviance", "loglik")
+jags.params <- c("theta.1", "theta.2", 'sigma.pro1', "sigma.obs",
+                 "mu", "df", "y", "X", "deviance", "loglik")
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_thetaM.txt',
+           model.file = 'models/model_SSAR1_logY_norm_t_varM_theta.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_norm_thetaM_1999.png',
+         filename = 'figures/predicted_counts_W_logY_norm_t_varM_theta_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_thetaM_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_t_varM_theta_W_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -163,7 +163,9 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
-  mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
+  mcmc_trace(jm$samples, c("mu", "sigma.obs", "theta.1", "theta.2",
+                           "df"))
+  mcmc_dens(jm$samples, c("mu", "sigma.obs", "theta.1", "theta.2",
+                          "df"))
 
 }

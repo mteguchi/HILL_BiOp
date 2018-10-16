@@ -26,16 +26,16 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 # get JM data first:
-data.0.JM <- read.csv('data/JM_nests.csv')
+data.0 <- read.csv('data/W_nests.csv')
 # create regularly spaced time series:
-data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin,
-                                       na.rm = T):max(data.0.JM$Year_begin,
+data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
+                                       na.rm = T):max(data.0$Year_begin,
                                                       na.rm = T),
                                    each = 12),
                         Month_begin = rep(1:12,
-                                          max(data.0.JM$Year_begin,
+                                          max(data.0$Year_begin,
                                               na.rm = T) -
-                                            min(data.0.JM$Year_begin,
+                                            min(data.0$Year_begin,
                                                 na.rm = T) + 1)) %>%
   mutate(begin_date = as.Date(paste(Year,
                                     Month_begin,
@@ -44,7 +44,7 @@ data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin,
          Frac.Year = Year + (Month_begin-0.5)/12) %>%
   select(Year, Month_begin, begin_date, Frac.Year)
 
-data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
+data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
                                                 Month_begin,
                                                 '01', sep = "-"),
                                           format = "%Y-%m-%d")) %>%
@@ -56,20 +56,20 @@ data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
          Nests = JM.1) %>%
   select(Year, Month, Frac.Year, begin_date, Nests) %>%
   na.omit() %>%
-  right_join(.,data.2.JM, by = "begin_date") %>%
+  right_join(.,data.2, by = "begin_date") %>%
   transmute(Year = Year.y,
             Month = Month_begin,
             Frac.Year = Frac.Year.y,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 1998) -> data.1.JM
-#data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
+  filter(Year > 1998) -> data.1
+#data.1.2005 <- filter(data.1, YEAR > 2004)
 
-data.1.JM <- data.1.JM[5:nrow(data.1.JM),]
+data.1 <- data.1[5:nrow(data.1),]
 
-jags.data <- list(y = log(data.1.JM$Nests),
-                  m = data.1.JM$Month,
-                  T = nrow(data.1.JM))
+jags.data <- list(y = log(data.1$Nests),
+                  m = data.1$Month,
+                  T = nrow(data.1))
 
 #load.module('dic')
 jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
@@ -92,20 +92,20 @@ Rhat <- jm$Rhat
 ys.stats <- data.frame(low_y = jm$q2.5$y,
                        median_y = jm$q50$y,
                        high_y = jm$q97.5$y,
-                       time = data.1.JM$Frac.Year,
-                       obsY = data.1.JM$Nests,
-                       month = data.1.JM$Month,
-                       year = data.1.JM$Year)
+                       time = data.1$Frac.Year,
+                       obsY = data.1$Nests,
+                       month = data.1$Month,
+                       year = data.1$Year)
 
 
 # extract Xs - the state model
 Xs.stats <- data.frame(low_X = jm$q2.5$X,
                        median_X = jm$q50$X,
                        high_X = jm$q97.5$X,
-                       time = data.1.JM$Frac.Year,
-                       obsY = data.1.JM$Nests,
-                       month = data.1.JM$Month,
-                       year = data.1.JM$Year)
+                       time = data.1$Frac.Year,
+                       obsY = data.1$Nests,
+                       month = data.1$Month,
+                       year = data.1$Year)
 
 Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
@@ -135,7 +135,7 @@ p.1 <- ggplot() +
              alpha = 0.5)
 
 
-results <- list(data.1 = data.1.JM,
+results <- list(data.1 = data.1,
                 jags.data = jags.data,
                 Xs.stats = Xs.stats,
                 Xs.year = Xs.year,
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1.JM,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_norm_varM_thetaM_1999.png',
+         filename = 'figures/predicted_counts_W_logY_norm_norm_varM_thetaM_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_varM_thetaM_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_norm_varM_thetaM_W_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
