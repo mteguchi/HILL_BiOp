@@ -1,0 +1,56 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is t. The degrees-of-freedom parameter for 
+# the t distribution is also estimated. 
+#
+# To accommodate increasing and decreasing months and changes in variances, slope and variance
+# are treated as functions of months. 
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1)T(0,) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I use gamma(2, 0.5). 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+	for (t in 2:T){
+		# process: 
+        theta[t] <- ifelse(m[t] == 4 || m[t] == 5 || m[t] == 6 || m[t] == 10 ||  m[t] == 11 || m[t] == 12, theta.1, theta.2)
+        predX[t] <- theta[t] + X[t-1]
+
+        # variance
+        tau.pro[t] <- tau.pro1[m[t]]
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
+        
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
+        
+    }
+
+    X[1] <- mu
+    y[1] ~ dnorm(X[1], tau.obs)
+    
+    mu ~ dnorm(5, 0.1)T(0,)
+    
+    for (k in 1:12){
+        sigma.pro1[k] ~ dgamma(2, 0.5)
+        tau.pro1[k] <- 1/(sigma.pro1[k] * sigma.pro1[k])
+    }
+    
+    sigma.obs ~ dgamma(2, 0.5)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+    
+    theta.1 ~ dnorm(0, 0.1)
+    theta.2 ~ dnorm(0, 0.1)
+    
+}

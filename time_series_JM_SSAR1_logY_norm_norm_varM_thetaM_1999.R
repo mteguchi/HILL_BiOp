@@ -26,7 +26,7 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 # get JM data first:
-data.0 <- read.csv('data/W_nests.csv')
+data.0 <- read.csv('data/JM_nests.csv')
 # create regularly spaced time series:
 data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
                                        na.rm = T):max(data.0$Year_begin,
@@ -150,12 +150,12 @@ results <- list(data.1 = data.1,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_W_logY_norm_norm_varM_thetaM_2006.png',
+         filename = 'figures/predicted_counts_JM_logY_norm_norm_varM_thetaM_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_varM_thetaM_W_2006_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_norm_varM_thetaM_JM_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()

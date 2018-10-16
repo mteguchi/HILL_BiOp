@@ -1,0 +1,60 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is t. The degrees-of-freedom parameter for 
+# the t distribution is also estimated. 
+#
+# To accommodate increasing and decreasing months and changes in variances, slope and variance
+# are treated as functions of months. 
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1)T(0,) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+	for (t in 2:T){
+		# process: increasing before August, decreasing after July
+        theta[t] <- theta.1[m[t]]
+        predX[t] <- theta[t] + X[t-1]
+
+       # variance
+	   # one variance for Sept and Oct, another for the rest
+        tau.pro[t] <- ifelse(m[t] == 10 || m[t] == 9, tau.pro1, tau.pro2)       
+        X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
+
+		# observation
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
+        
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
+        
+    }
+
+    X[1] <- mu
+    y[1] ~ dnorm(X[1], tau.obs)
+    
+    mu ~ dnorm(5, 0.1)T(0,)
+    
+    for (k in 1:12){
+        theta.1[k] ~ dnorm(0, 1)
+    }
+
+    sigma.pro1 ~ dgamma(2, 0.5)
+    tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
+
+    sigma.pro2 ~ dgamma(2, 0.5)
+    tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
+
+    sigma.obs ~ dgamma(2, 0.5)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+}

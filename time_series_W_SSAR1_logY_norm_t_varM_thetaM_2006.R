@@ -62,11 +62,11 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Frac.Year = Frac.Year.y,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 2005) -> data.1.W
+  filter(Year > 2005) -> data.1
 
-jags.data <- list(y = log(data.1.W$Nests),
-                  m = data.1.W$Month,
-                  T = nrow(data.1.W))
+jags.data <- list(y = log(data.1$Nests),
+                  m = data.1$Month,
+                  T = nrow(data.1))
 
 #load.module('dic')
 jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
@@ -75,7 +75,7 @@ jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_t_thetaM.txt',
+           model.file = 'models/model_SSAR1_logY_norm_t_varM_thetaM.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -89,20 +89,20 @@ Rhat <- jm$Rhat
 ys.stats <- data.frame(low_y = jm$q2.5$y,
                        median_y = jm$q50$y,
                        high_y = jm$q97.5$y,
-                       time = data.1.W$Frac.Year,
-                       obsY = data.1.W$Nests,
-                       month = data.1.W$Month,
-                       year = data.1.W$Year)
+                       time = data.1$Frac.Year,
+                       obsY = data.1$Nests,
+                       month = data.1$Month,
+                       year = data.1$Year)
 
 
 # extract Xs - the state model
 Xs.stats <- data.frame(low_X = jm$q2.5$X,
                        median_X = jm$q50$X,
                        high_X = jm$q97.5$X,
-                       time = data.1.W$Frac.Year,
-                       obsY = data.1.W$Nests,
-                       month = data.1.W$Month,
-                       year = data.1.W$Year)
+                       time = data.1$Frac.Year,
+                       obsY = data.1$Nests,
+                       month = data.1$Month,
+                       year = data.1$Year)
 
 Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
                                                   low = sum(low_X),
@@ -132,7 +132,7 @@ p.1 <- ggplot() +
              alpha = 0.5)
 
 
-results <- list(data.1 = data.1.W,
+results <- list(data.1 = data.1,
                 jags.data = jags.data,
                 Xs.stats = Xs.stats,
                 Xs.year = Xs.year,
@@ -147,12 +147,12 @@ results <- list(data.1 = data.1.W,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_W_logY_norm_t_thetaM_2006.png',
+         filename = 'figures/predicted_counts_W_logY_norm_t_varM_thetaM_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_t_thetaM_W_2006_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_t_varM_thetaM_W_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -160,7 +160,13 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "df"))
-  mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "df"))
-
+  mcmc_trace(jm$samples, c("mu", "sigma.obs", "df"))
+  mcmc_dens(jm$samples, c("mu", "sigma.obs",  "df"))
+  mcmc_dens(jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+                          "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+                          "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
+  mcmc_dens(jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]", "sigma.pro1[3]", "sigma.pro1[4]",
+                          "sigma.pro1[5]", "sigma.pro1[6]", "sigma.pro1[7]", "sigma.pro1[8]",
+                          "sigma.pro1[9]", "sigma.pro1[10]", "sigma.pro1[11]", "sigma.pro1[12]"))
+  
 }

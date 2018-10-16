@@ -53,7 +53,7 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
          f_month = as.factor(Month),
          f_year = as.factor(Year),
          Frac.Year = Year + (Month_begin-0.5)/12,
-         Nests = JM.1) %>%
+         Nests = W.1) %>%
   select(Year, Month, Frac.Year, begin_date, Nests) %>%
   na.omit() %>%
   right_join(.,data.2, by = "begin_date") %>%
@@ -63,9 +63,6 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
   filter(Year > 2005) -> data.1
-#data.1.2005 <- filter(data.1, YEAR > 2004)
-
-data.1 <- data.1[5:nrow(data.1),]
 
 jags.data <- list(y = log(data.1$Nests),
                   m = data.1$Month,
@@ -78,7 +75,7 @@ jags.params <- c("theta.1", "theta.2", 'sigma.pro1', "sigma.obs",
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_varM_theta.txt',
+           model.file = 'models/model_SSAR1_W_logY_norm_norm_varM_theta.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -165,5 +162,7 @@ if (plot.fig){
   ggplot2::theme_set(base_theme)
   mcmc_trace(jm$samples, c("mu", "sigma.obs", "theta.1", "theta.2"))
   mcmc_dens(jm$samples, c("mu", "sigma.obs", "theta.1", "theta.2"))
-
+  mcmc_dens(jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]", "sigma.pro1[3]", "sigma.pro1[4]",
+                          "sigma.pro1[5]", "sigma.pro1[6]", "sigma.pro1[7]", "sigma.pro1[8]",
+                          "sigma.pro1[9]", "sigma.pro1[10]", "sigma.pro1[11]", "sigma.pro1[12]"))
 }

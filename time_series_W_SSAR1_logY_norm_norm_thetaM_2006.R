@@ -63,9 +63,6 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
   filter(Year > 2005) -> data.1
-#data.1.2005 <- filter(data.1, YEAR > 2004)
-
-data.1 <- data.1[5:nrow(data.1),]
 
 jags.data <- list(y = log(data.1$Nests),
                   m = data.1$Month,
@@ -165,5 +162,8 @@ if (plot.fig){
   ggplot2::theme_set(base_theme)
   mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
   mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
+  bayesplot::mcmc_dens(M16.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+                                         "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+                                         "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
 
 }

@@ -53,7 +53,7 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
          f_month = as.factor(Month),
          f_year = as.factor(Year),
          Frac.Year = Year + (Month_begin-0.5)/12,
-         Nests = JM.1) %>%
+         Nests = W.1) %>%
   select(Year, Month, Frac.Year, begin_date, Nests) %>%
   na.omit() %>%
   right_join(.,data.2, by = "begin_date") %>%
@@ -63,9 +63,6 @@ data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
             Nests = Nests) %>%
   reshape::sort_df(.,vars = "Frac.Year") %>%
   filter(Year > 2005) -> data.1
-#data.1.2005 <- filter(data.1, YEAR > 2004)
-
-data.1 <- data.1[5:nrow(data.1),]
 
 jags.data <- list(y = log(data.1$Nests),
                   m = data.1$Month,
@@ -78,7 +75,7 @@ jags.params <- c("theta.1", 'sigma.pro1', "sigma.pro2", "sigma.obs",
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_var_thetaM.txt',
+           model.file = 'models/model_SSAR1_W_logY_norm_norm_var_thetaM.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -130,6 +127,9 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = exp(median_X)), color = "red",
             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(low_X)), color = "red",
+            linetype = 2) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)
@@ -165,5 +165,7 @@ if (plot.fig){
   ggplot2::theme_set(base_theme)
   mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2"))
   mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2"))
-
+  mcmc_dens(jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+                          "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+                          "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
 }
