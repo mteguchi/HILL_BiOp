@@ -1,0 +1,480 @@
+---
+title: "Nest count imputation - Wermon"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source("HILL_BiOp_functions.R")
+```
+
+This document describes how leatherback turtle nest count data were imputed for Wermon. All models were ran separately and results stored in .rds files. 
+
+We use the Bayesian state-space approach, where the mean of the state process is modeled with an auto-regressive model with time lag of one step (AR(1)). 
+
+M[t] = S[t] * X[t-1]
+
+where s[t] is the “slope” parameter between two consecutive counts (transformed into the natural log scale). When s[t] > 1, the counts increase whereas s[t] < 1, they decline. This slope parameter can be constant (s[t] = s for all t), grouped over some time periods (s[t] = s1 for some t, s[t] = s2 otherwise), function of other variables (s[t] = f(k), where k is a vector of one or more variables), or all different. The last option, i.e., s[t] is different for all t, probably is not useful as there would be too many parameters.  We consider the other three options in this study. 
+
+The state is modeled with a normal distribution.
+
+X[t] ~ N(M[t], v[t]),
+
+where v[t] is the variance of X[t]. The variance also can be modeled in a few different scenarios as was in the slope parameter. It can be constant (v[t] = v for all t), grouped over some time periods (v[t] = v1 for some t, v[t] = v2 otherwise), function of other variables (v[t] = f(z), where z is a vector of one or more variables), or all different. Again we consider the three options as before. 
+
+Given the state process, observations are modeled with normal or t distributions. 
+
+Y[t] ~ N(X[t], v.obs)
+
+Y[t] ~ t(X[t], v.obs, df)
+
+where v.obs is the observation variance and df is the degrees-of-freedom parameter of the t distribution. The observation variance is assumed to be constant throughout the dataset. In total 8 models were developed and predictive accuracy was compared to select the most accurate model (Table x).  Model selection process is explained in the subsequent section.  The analysis is conducted in the natural logarithm scale. We define the following:
+
+x[t] = ln(X[t])
+
+m[t] = ln(M[t])
+
+y[t] = ln(Y[t])
+
+s[t] = ln(S[t])
+
+The models were fit to datasets from turtle nesting beaches. Bayesian computations were conducted using jags through jagsUI package in R.  
+
+First model is the simplest; the state space is modeled with NOrmal distribution and observation is modeled also with normal distribution. No seasonal change in variance or slope is considered. Then, the model definitions become the following:
+
+m[t] = s + x[t-1]
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ N(x[t], v.obs)
+
+Initial analyses indicated that missing data for 2014 and 2015 resulted in poor model selection statistics. Consequently, for the model seleciton process, I analyzed the data from 2006 to 2014 first to find the best model, then applied the model to the entire data set (2006 to 2017).
+
+```{r model1, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_W_2006_2014_2018-10-17.rds")
+M1.loo.out <- M$jags.out$loo.out$loo.out
+M1.jm <- M$jags.out$jm
+```
+
+Diagnostics of the expected log predictive density indicated that the model was not appropriate, where all estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M1, fig.cap = "Figure. PSIS diagnostic plot for M1"}
+plot(M1.loo.out)
+```
+
+Because of the poor predictive performance, we do not use this model for imputation.
+
+The second model is similar to the first except there were two slope parameters: one for January through July and another for August through December. These corresponded to before and after the peak of each nesting season in August. The model is as follows:
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model2, cache=T, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_2018-10-17.rds")
+M2.loo.out <- M$jags.out$loo.out$loo.out
+M2.jm <- M$jags.out$jm
+```
+
+Diagnostics of the expected log predictive density indicated that the model was considerably better than the first model. Many of estimated Pareto k parameter was less than 0.7 (```r sum(M2.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M2.loo.out$diagnostics$pareto_k)```). Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```).  
+
+```{r PSIS_M2, fig.cap="Figure. PSIS diagnostic plot for M2"}
+plot(M2.loo.out)
+```
+
+
+The third model contained one slope and two variances: one for nesting season (May through September) and another for the non-nesting season (October through April). 
+
+m[t] = s + x[t-1] 
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model3, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_W_2006_2014_2018-10-17.rds")
+M3.loo.out <- M$jags.out$loo.out$loo.out
+M3.jm <- M$jags.out$jm
+
+```
+
+Similary to the first model, all estimated Pareto k statistics were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). We do not consider this model further.
+
+```{r PSIS_M3, fig.cap="Figure. PSIS diagnostic plot for M3"}
+plot(M3.loo.out)
+```
+
+
+The fourth model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April)
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model4, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_theta_W_2006_2014_2018-10-17.rds")
+M4.loo.out <- M$jags.out$loo.out$loo.out
+M4.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M4.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M4.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M4, fig.cap="Figure. PSIS diagnostic plot for M4"}
+plot(M4.loo.out)
+```
+
+
+In Model 5, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model5, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_W_2006_2014_2018-10-17.rds")
+M5.loo.out <- M$jags.out$loo.out$loo.out
+M5.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M5.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M5.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M5"}
+plot(M5.loo.out)
+```
+
+
+In Model 6, a unique slope and variance parameters were given to each month. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model6, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_varM_thetaM_W_2006_2014_2018-10-17.rds")
+M6.loo.out <- M$jags.out$loo.out$loo.out
+M6.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M6.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M6.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M6, fig.cap="Figure. PSIS diagnostic plot for M6"}
+plot(M6.loo.out)
+```
+
+```{r posterior_M6, fig.cap="Figure. Posterior distributions for M6"}
+#bayesplot::mcmc_dens(M7.jm$samples, c("theta.1", "theta.2", "sigma.pro1", "sigma.obs"))
+```
+
+In Model 7, a unique slope parameter was given to each month, whereas there were two variance2. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise. 
+
+y[t] ~ N(x[t], v.obs, df)
+
+```{r model7, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_thetaM_W_2006_2014_2018-10-17.rds")
+M7.loo.out <- M$jags.out$loo.out$loo.out
+M7.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M7.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M7.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M7, fig.cap="Figure. PSIS diagnostic plot for M7"}
+plot(M7.loo.out)
+```
+
+
+Model 8, a unique slope parameter was given to each month, whereas there was one variance. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro), 
+
+y[t] ~ N(x[t], v.obs)
+
+```{r model8, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_thetaM_W_2006_2014_2018-10-17.rds")
+M8.loo.out <- M$jags.out$loo.out$loo.out
+M8.jm <- M$jags.out$jm
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M8.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M8.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M8, fig.cap="Figure. PSIS diagnostic plot for M7"}
+plot(M8.loo.out)
+```
+
+
+Model 9 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
+
+m[t] = s + x[t-1]
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model9, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_W_2006_2014_2018-10-17.rds")
+M9.loo.out <- M$jags.out$loo.out$loo.out
+M9.jm <- M$jags.out$jm
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M9.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M9.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M9, fig.cap="Figure. PSIS diagnostic plot for M9"}
+plot(M9.loo.out)
+```
+
+
+Model 10 is similar to the second except observations are modeled with t distribution.  These corresponded to before and after the peak of each nesting season in August. The model is as follows:
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro)
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model10, cache=T, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_theta_W_2006_2014_2018-10-17.rds")
+M10.loo.out <- M$jags.out$loo.out$loo.out
+M10.jm <- M$jags.out$jm
+```
+
+The vast majority of estimated Pareto k parameter was less than 0.7 (```r sum(M10.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M10.loo.out$diagnostics$pareto_k)```. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```).  
+
+```{r PSIS_M10, fig.cap="Figure. PSIS diagnostic plot for M10"}
+plot(M10.loo.out)
+```
+
+
+The next model contained one slope and two variances: one for nesting season (May through September) and another for the non-nesting season (October through April) and t distribution for observations. 
+
+m[t] = s + x[t-1] 
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model11, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_W_2006_2014_2018-10-17.rds")
+M11.loo.out <- M$jags.out$loo.out$loo.out
+M11.jm <- M$jags.out$jm
+
+```
+
+Similary to the first model, all estimated Pareto k statistics were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). We do not consider this model further.
+
+```{r PSIS_M11} 
+plot(M11.loo.out)
+```
+
+Next model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April). Observations are modeled with t distribution.
+
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ N(x[t], v.obs, df)
+
+```{r model12, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_theta_W_2006_2014_2018-10-17.rds")
+M12.loo.out <- M$jags.out$loo.out$loo.out
+M12.jm <- M$jags.out$jm
+
+```
+
+There were many large estimated Pareto k parameter values, where ```r sum(M12.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M12.loo.out$diagnostics$pareto_k)``` were larger than 0.7.  Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M12}
+plot(M12.loo.out)
+```
+
+
+In Model 13, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
+m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model13, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_varM_theta_W_2006_2014_2018-10-18.rds")
+M13.loo.out <- M$jags.out$loo.out$loo.out
+M13.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M13.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M13.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M13}
+plot(M13.loo.out)
+```
+
+In Model 14, a unique slope and variance parameters were given to each month. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model14, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_2018-10-17.rds")
+M14.loo.out <- M$jags.out$loo.out$loo.out
+M14.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M14.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M14.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r}
+plot(M14.loo.out)
+```
+
+
+In Model 15, a unique slope parameter was given to each month, whereas there were two variances. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwise.
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model15, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2014_2018-10-18.rds")
+M15.loo.out <- M$jags.out$loo.out$loo.out
+M15.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M15.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M15.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r}
+plot(M15.loo.out)
+```
+
+In Model 16, a unique slope parameter was given to each month, whereas there was one variance. 
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro), 
+
+y[t] ~ t(x[t], v.obs, df)
+
+```{r model16, cache=TRUE, include=TRUE}
+M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_thetaM_W_2006_2014_2018-10-18.rds")
+M16.loo.out <- M$jags.out$loo.out$loo.out
+M16.jm <- M$jags.out$jm
+
+```
+
+There were some large estimated Pareto k parameter values, where ```r sum(M16.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M16.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M16, fig.cap="Figure. PSIS diagnostic plot for M16."}
+plot(M16.loo.out)
+```
+
+Estimated Pareto k statistics indicated that models 2, 8, 10, and 16 had acceptable predictive performance. We compared these models using using ELPD values.
+
+```{r ModelComparison, include=TRUE}
+M.compare <- compare(M2.loo.out, M8.loo.out, M10.loo.out, M16.loo.out)
+print(M.compare)
+```
+
+Model 16, which contained month-specific slopes and one variance, turned out to be the best. M8 was a close second. The difference between them is the observation model, which is either t (M16) or normal (M8). 
+
+m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
+
+x[t] ~ N(m[t], v.pro), 
+
+y[t] ~ t(x[t], v.obs, df)
+
+The posterior distributions of the model are shown below.
+
+```{r posterior_M16, fig.cap="Figure. Posterior distribuitons of slope parameters for M16"}
+bayesplot::mcmc_dens(M16.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+                                      "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+                                      "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
+```
+
+```{r posterior_M16_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1), standard deviation of observations (sigma.obs), and degrees of freedom (df) parameter."}
+bayesplot::mcmc_dens(M16.jm$samples, c("sigma.pro1", "sigma.obs", "df"))
+```
+
+The slope parameters indicated increasing trend to July and decreased from August through November. 
+
+We use this model to impute missing data points.
+
+```{r}
+M <- readRDS("RData/SSAR1_logY_norm_t_thetaM_JM_1999_2018-10-13.rds")
+M16.loo.out <- M$loo.out$loo.out
+M16.jm <- M$jm
+Xs.stats <- M$Xs.stats
+ys.stats <- M$ys.stats
+p.1 <- ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(high_X)), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = exp(median_X)), color = "red",
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(median_X)), color = "red",
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5)
+
+print(p.1)
+```
+
+Then, combine all counts per year.
+
+```{r }
+# need to pool counts per nesting season - not by calendar year
+Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) -> Xs.stats
+yrs <- as.matrix(unique(Xs.stats$season))
+
+X.posteriors.yr <- lapply(apply(yrs, 
+                                MARGIN = 1,
+                                FUN = extract.posterior.jagsUI, 
+                                Xs.stats = Xs.stats, 
+                                samples = M$jm$samples),
+                          FUN = function(x) exp(x$samples) %>% rowSums())
+
+Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.yr, 
+                                              FUN = quantile,
+                                              c(0.025, 0.5, 0.975))),
+                                ncol = 3, byrow = T)) 
+colnames(Xs.year) <- c("low", "median", "high")
+Xs.year <-mutate(Xs.year, 
+                 year = yrs)
+
+ys.stats %>% group_by(year) %>%
+  summarize(obs = sum(obsY, na.rm = T)) -> ys.yr
+
+p.JM.estimated.counts <- ggplot() + 
+  geom_point(data = Xs.year,
+             aes(x = year, y = median))+
+  geom_errorbar(data = Xs.year,
+                aes(x = year, ymin = low, ymax = high)) + 
+  geom_point(data = ys.yr,
+             aes(x = year, y = obs),
+             color = "red") +
+  labs(title = 'Jamursba-Medi', x = '', y = "Nest counts")
+
+print(p.JM.estimated.counts)
+```
+
