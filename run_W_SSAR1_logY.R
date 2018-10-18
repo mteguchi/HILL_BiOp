@@ -139,6 +139,10 @@ for (k in 1:length(norm.norm.models)){
 # source("time_series_W_SSAR1_logY_norm_norm_varM_theta_2006.R")
 #source("time_series_W_SSAR1_logY_norm_norm_thetaM_2006.R")
 
+params.all <- c("theta.1", 'sigma.pro1', "sigma.obs", "df",
+                "mu", "y", "X", "deviance", "loglik")
+
+
 for (k in 1:length(norm.t.models)){
   print(paste("file", k, "of", length(norm.t.models), "Norm-t models"))
   if (is.na(charmatch("", params.model[[k]]))){
