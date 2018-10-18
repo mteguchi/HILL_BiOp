@@ -69,13 +69,13 @@ jags.data <- list(y = log(data.1$Nests),
                   T = nrow(data.1))
 
 #load.module('dic')
-jags.params <- c("theta.1", 'sigma.pro1', "sigma.obs",
+jags.params <- c("theta.1", "theta.2", 'sigma.pro1', "sigma.pro2", "sigma.obs",
                  "mu", "y", "X", "deviance", "loglik")
 
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_thetaM.txt',
+           model.file = 'models/model_SSAR1_W_logY_norm_norm_var_theta.txt',
            n.chains = MCMC.n.chains,
            n.burnin = MCMC.n.burnin,
            n.thin = MCMC.n.thin,
@@ -127,6 +127,9 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = exp(median_X)), color = "red",
             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(low_X)), color = "red",
+            linetype = 2) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)
@@ -147,12 +150,12 @@ results <- list(data.1 = data.1,
                 loo.out = loo.out)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_W_logY_norm_norm_thetaM_2006.png',
+         filename = 'figures/predicted_counts_W_logY_norm_norm_var_theta_2006.png',
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_thetaM_W_2006_', Sys.Date(), '.rds'))
+          file = paste0('RData/SSAR1_logY_norm_norm_var_theta_W_2006_', Sys.Date(), '.rds'))
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
@@ -160,10 +163,8 @@ if (plot.fig){
 
   # set back to the base theme:
   ggplot2::theme_set(base_theme)
-  mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
-  mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1"))
-  bayesplot::mcmc_dens(jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
-                                         "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
-                                         "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
-
+  mcmc_trace(jm$samples, c("sigma.obs", "sigma.pro1", "sigma.pro2", 
+                           "theta.1", "theta.2"))
+  mcmc_dens(jm$samples, c("sigma.obs", "sigma.pro1", "sigma.pro2", 
+                          "theta.1", "theta.2"))
 }
