@@ -56,7 +56,7 @@ params.model <- c(c(""), c("theta.2"), c("sigma.pro2"),
 
 for (k in 1:length(norm.norm.models)){
   print(paste("file", k, "of", length(norm.norm.models), "Norm-Norm models"))
-  if (is.na(charmatch("", params.model[[k]]))){
+  if (!is.na(charmatch("", params.model[[k]]))){
     jags.params <- c(params.all, params.model[[k]])
   } else {
     jags.params <- params.all
@@ -145,7 +145,7 @@ params.all <- c("theta.1", 'sigma.pro1', "sigma.obs", "df",
 
 for (k in 1:length(norm.t.models)){
   print(paste("file", k, "of", length(norm.t.models), "Norm-t models"))
-  if (is.na(charmatch("", params.model[[k]]))){
+  if (!is.na(charmatch("", params.model[[k]]))){
     jags.params <- c(params.all, params.model[[k]])
   } else {
     jags.params <- params.all

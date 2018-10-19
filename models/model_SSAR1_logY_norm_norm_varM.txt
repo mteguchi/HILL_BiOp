@@ -21,18 +21,17 @@
 
 model{
 	for (t in 2:T){
-		# process: increasing before August, decreasing after July
-        theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
-        predX[t] <- theta[t] + X[t-1]
+		# process: 
+        predX[t] <- theta.1 + X[t-1]
 
         # variance
         tau.pro[t] <- tau.pro1[m[t]]
         X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
 
 		# observation
-		y[t] ~ dt(X[t], tau.obs, df)T(0,)
+		y[t] ~ dnorm(X[t], tau.obs)T(0,)
         
-        loglik[t] <- logdensity.t(y[t], X[t], tau.obs, df)
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
         
     }
 
@@ -50,9 +49,5 @@ model{
     tau.obs <- 1/(sigma.obs * sigma.obs)
     
     theta.1 ~ dnorm(0, 0.1)
-    theta.2 ~ dnorm(0, 0.1)
     
-    df ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
-    # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
-       
 }

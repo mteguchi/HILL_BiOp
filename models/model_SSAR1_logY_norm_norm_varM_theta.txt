@@ -7,8 +7,7 @@
 # https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
 #
 # For this model, the natural log of raw counts were used as data (y). The state model
-# is normal and the observation model is t. The degrees-of-freedom parameter for 
-# the t distribution is also estimated. 
+# is normal and the observation model is normal. 
 #
 # To accommodate increasing and decreasing months and changes in variances, slope and variance
 # are treated as functions of months. 
