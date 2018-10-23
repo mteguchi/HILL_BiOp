@@ -443,35 +443,37 @@ Then, combine all counts per year.
 ```{r }
 # need to pool counts per nesting season - not by calendar year
 Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) -> Xs.stats
-yrs <- as.matrix(unique(Xs.stats$season))
+ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) -> ys.stats
 
-X.posteriors.yr <- lapply(apply(yrs, 
-                                MARGIN = 1,
-                                FUN = extract.posterior.jagsUI, 
-                                Xs.stats = Xs.stats, 
-                                samples = M$jm$samples),
-                          FUN = function(x) exp(x$samples) %>% rowSums())
+seasons <- as.matrix(unique(Xs.stats$season))
 
-Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.yr, 
+X.posterior.season <- lapply(apply(seasons, 
+                                   MARGIN = 1,
+                                   FUN = extract.posterior.jagsUI, 
+                                   Xs.stats = Xs.stats, 
+                                   samples = M16.jm$samples),
+                             FUN = function(x) exp(x$samples) %>% rowSums())
+
+Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.season, 
                                               FUN = quantile,
                                               c(0.025, 0.5, 0.975))),
                                 ncol = 3, byrow = T)) 
-colnames(Xs.year) <- c("low", "median", "high")
-Xs.year <-mutate(Xs.year, 
-                 year = yrs)
+colnames(Xs.season) <- c("low", "median", "high")
+Xs.season <-mutate(Xs.season, 
+                   season = seasons)
 
-ys.stats %>% group_by(year) %>%
-  summarize(obs = sum(obsY, na.rm = T)) -> ys.yr
+ys.stats %>% group_by(season) %>%
+  summarize(obs = sum(obsY, na.rm = T)) -> ys.season
 
 p.JM.estimated.counts <- ggplot() + 
-  geom_point(data = Xs.year,
-             aes(x = year, y = median))+
-  geom_errorbar(data = Xs.year,
-                aes(x = year, ymin = low, ymax = high)) + 
-  geom_point(data = ys.yr,
-             aes(x = year, y = obs),
+  geom_point(data = Xs.season,
+             aes(x = season, y = median))+
+  geom_errorbar(data = Xs.season,
+                aes(x = season, ymin = low, ymax = high)) + 
+  geom_point(data = ys.season,
+             aes(x = season, y = obs),
              color = "red") +
-  labs(title = 'Jamursba-Medi', x = '', y = "Nest counts")
+  labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
 
 print(p.JM.estimated.counts)
 ```

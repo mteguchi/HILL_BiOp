@@ -12,6 +12,7 @@ library(ggplot2)
 library(tidyverse)
 library(lubridate)
 library(loo)
+library(dplyr)
 
 data.extract <- function(location, year.begin, year.end){
   if (location == "JM"){
@@ -129,17 +130,17 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
 extract.posterior.jagsUI <- function(yr, Xs.stats, samples){
   Xs.stats %>%
     mutate(var.name = rownames(Xs.stats)) %>%
-    filter(year == yr) %>%
-    select(var.name) -> Xs.name
+    filter(season == yr) %>%
+    select(var.name, summer) -> Xs.name
   
   all.samples <- do.call(rbind, samples)
-  Xnames <- apply(Xs.name, 
+  Xnames <- apply(as.matrix(Xs.name$var.name), 
                   FUN = function(x) paste0("X[", x, "]"), 
                   MARGIN = 1)
   
   out.samples <- all.samples[, Xnames]
   
-  return(list(samples = out.samples, var.names = Xnames))
+  return(list(samples = out.samples, var.names = Xnames, summer = Xs.name$summer))
   
 }
 
