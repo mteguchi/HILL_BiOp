@@ -17,9 +17,10 @@ library(dplyr)
 data.extract <- function(location, year.begin, year.end){
   if (location == "JM"){
     data.0 <- read.csv("data/JM_nests.csv")
+    data.0 %>% mutate(Nests = JM.1) -> data.0
   } else if (location == "W"){
     data.0 <- read.csv('data/W_nests.csv')
-    
+    data.0 %>% mutate(Nests = W.1) -> data.0
   }
   # create regularly spaced time series:
   data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
@@ -46,8 +47,7 @@ data.extract <- function(location, year.begin, year.end){
            Month = Month_begin,
            f_month = as.factor(Month),
            f_year = as.factor(Year),
-           Frac.Year = Year + (Month_begin-0.5)/12,
-           Nests = W.1) %>%
+           Frac.Year = Year + (Month_begin-0.5)/12) %>%
     select(Year, Month, Frac.Year, begin_date, Nests) %>%
     na.omit() %>%
     right_join(.,data.2, by = "begin_date") %>%
