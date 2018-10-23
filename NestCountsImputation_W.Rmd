@@ -7,6 +7,7 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("HILL_BiOp_functions.R")
+run.date <- "2018-10-19"
 ```
 
 This document describes how leatherback turtle nest count data were imputed for Wermon. All models were ran separately and results stored in .rds files. 
@@ -54,7 +55,7 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ N(x[t], v.obs)
 
 ```{r model1, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_W_2006_2014_", run.date, ".rds"))
 M1.loo.out <- M$jags.out$loo.out$loo.out
 M1.jm <- M$jags.out$jm
 ```
@@ -75,7 +76,7 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ N(x[t], v.obs)
 
 ```{r model2, cache=T, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_", run.date, ".rds"))
 M2.loo.out <- M$jags.out$loo.out$loo.out
 M2.jm <- M$jags.out$jm
 ```
@@ -96,7 +97,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 y[t] ~ N(x[t], v.obs)
 
 ```{r model3, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_W_2006_2014_", run.date, ".rds"))
 M3.loo.out <- M$jags.out$loo.out$loo.out
 M3.jm <- M$jags.out$jm
 
@@ -118,7 +119,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 y[t] ~ N(x[t], v.obs)
 
 ```{r model4, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_theta_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_theta_W_2006_2014_", run.date, ".rds"))
 M4.loo.out <- M$jags.out$loo.out$loo.out
 M4.jm <- M$jags.out$jm
 
@@ -139,7 +140,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ N(x[t], v.obs)
 
 ```{r model5, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_W_2006_2014_", run.date, ".rds"))
 M5.loo.out <- M$jags.out$loo.out$loo.out
 M5.jm <- M$jags.out$jm
 
@@ -160,7 +161,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ N(x[t], v.obs)
 
 ```{r model6, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_varM_thetaM_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_thetaM_W_2006_2014_", run.date, ".rds"))
 M6.loo.out <- M$jags.out$loo.out$loo.out
 M6.jm <- M$jags.out$jm
 
@@ -185,7 +186,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 y[t] ~ N(x[t], v.obs, df)
 
 ```{r model7, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_var_thetaM_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_thetaM_W_2006_2014_", run.date, ".rds"))
 M7.loo.out <- M$jags.out$loo.out$loo.out
 M7.jm <- M$jags.out$jm
 
@@ -206,7 +207,7 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ N(x[t], v.obs)
 
 ```{r model8, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_norm_thetaM_W_2006_2014_2018-10-17.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_thetaM_W_2006_2014_", run.date, ".rds"))
 M8.loo.out <- M$jags.out$loo.out$loo.out
 M8.jm <- M$jags.out$jm
 ```
@@ -227,7 +228,7 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model9, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_W_2006_2014_", run.date, ".rds"))
 M9.loo.out <- M$jags.out$loo.out$loo.out
 M9.jm <- M$jags.out$jm
 ```
@@ -248,7 +249,7 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model10, cache=T, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_theta_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_theta_W_2006_2014_", run.date, ".rds"))
 M10.loo.out <- M$jags.out$loo.out$loo.out
 M10.jm <- M$jags.out$jm
 ```
@@ -269,7 +270,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 v.pro[t] = v1 if month = 9 or 10, v2 oth
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model11, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_W_2006_2014_", run.date, ".rds"))
 M11.loo.out <- M$jags.out$loo.out$loo.out
 M11.jm <- M$jags.out$jm
 
@@ -291,7 +292,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 y[t] ~ N(x[t], v.obs, df)
 
 ```{r model12, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_theta_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_theta_W_2006_2014_", run.date, ".rds"))
 M12.loo.out <- M$jags.out$loo.out$loo.out
 M12.jm <- M$jags.out$jm
 
@@ -312,7 +313,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model13, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_varM_theta_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_theta_W_2006_2014_", run.date, ".rds"))
 M13.loo.out <- M$jags.out$loo.out$loo.out
 M13.jm <- M$jags.out$jm
 
@@ -332,7 +333,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model14, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_", run.date, ".rds"))
 M14.loo.out <- M$jags.out$loo.out$loo.out
 M14.jm <- M$jags.out$jm
 
@@ -353,7 +354,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model15, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2014_", run.date, ".rds"))
 M15.loo.out <- M$jags.out$loo.out$loo.out
 M15.jm <- M$jags.out$jm
 
@@ -374,7 +375,7 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model16, cache=TRUE, include=TRUE}
-M <- readRDS("RData/jagsout_SSAR1_logY_norm_t_thetaM_W_2006_2014_2018-10-18.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_W_2006_2014_", run.date, ".rds"))
 M16.loo.out <- M$jags.out$loo.out$loo.out
 M16.jm <- M$jags.out$jm
 

@@ -54,12 +54,13 @@ all.models <- c(norm.norm.models, norm.t.models)
 params.all <- c("theta.1", 'sigma.pro1', "sigma.obs",
                 "mu", "y", "X", "deviance", "loglik")
 
-for (k in 10:length(all.models)){
+for (k in 1:length(all.models)){
   print(paste("file", k, "of", length(all.models), "models"))
   print(all.models[[k]])
   
   if (k > length(norm.norm.models)){
     m <- k - length(norm.norm.models)
+    params.all <- c(params.all, "df")  # need df for norm-t models
   } else {
     m <- k
   }
@@ -73,6 +74,7 @@ for (k in 10:length(all.models)){
   } else if (m == 4){
       jags.params <- c(params.all, "theta.2", "sigma.pro2") 
   } 
+  
   
   jags.out <- run.jagsUI(data.jags$jags.data, 
                          jags.params, 
