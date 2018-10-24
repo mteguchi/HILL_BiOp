@@ -1,15 +1,9 @@
 #time series analysis
 
-
 rm(list=ls())
 tic <- Sys.time()
 Sys <- Sys.info()
 source('HILL_BiOp_functions.R')
-library(jagsUI)
-library(coda)
-library(ggplot2)
-library(loo)
-
 
 save.RData <- T
 save.fig <- T
@@ -25,94 +19,42 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.burnin = MCMC.n.burnin,
                     n.thin = MCMC.n.thin)
 
-# get JM data first:
-data.0.JM <- read.csv('data/JM_nests.csv')
-# create regularly spaced time series:
-data.2.JM <- data.frame(Year = rep(min(data.0.JM$Year_begin,
-                                       na.rm = T):max(data.0.JM$Year_begin,
-                                                      na.rm = T),
-                                   each = 12),
-                        Month_begin = rep(1:12,
-                                          max(data.0.JM$Year_begin,
-                                              na.rm = T) -
-                                            min(data.0.JM$Year_begin,
-                                                na.rm = T) + 1)) %>%
-  mutate(begin_date = as.Date(paste(Year,
-                                    Month_begin,
-                                    '01', sep = "-"),
-                              format = "%Y-%m-%d"),
-         Frac.Year = Year + (Month_begin-0.5)/12) %>%
-  select(Year, Month_begin, begin_date, Frac.Year)
+year.begin <- 1999
+year.end <- 2017
+loc <- "JM"
+data.jags <- data.extract(location = loc, 
+                          year.begin = year.begin, 
+                          year.end = year.end)
 
-data.0.JM %>% mutate(begin_date = as.Date(paste(Year_begin,
-                                                Month_begin,
-                                                '01', sep = "-"),
-                                          format = "%Y-%m-%d")) %>%
-  mutate(Year = Year_begin,
-         Month = Month_begin,
-         f_month = as.factor(Month),
-         f_year = as.factor(Year),
-         Frac.Year = Year + (Month_begin-0.5)/12,
-         Nests = JM.1) %>%
-  select(Year, Month, Frac.Year, begin_date, Nests) %>%
-  na.omit() %>%
-  right_join(.,data.2.JM, by = "begin_date") %>%
-  transmute(Year = Year.y,
-            Month = Month_begin,
-            Frac.Year = Frac.Year.y,
-            Nests = Nests) %>%
-  reshape::sort_df(.,vars = "Frac.Year") %>%
-  filter(Year > 1998) -> data.1.JM
-#data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
-
-data.1.JM <- data.1.JM[5:nrow(data.1.JM),]
-
-jags.data <- list(y = log(data.1.JM$Nests),
-                  m = data.1.JM$Month,
-                  T = nrow(data.1.JM))
-
-#load.module('dic')
 jags.params <- c('theta.1', 'sigma.pro1', 'sigma.pro2', "sigma.obs",
                  'mu', 'y', 'X', 'deviance', 'loglik')
 
-jm <- jags(jags.data,
-           inits = NULL,
-           parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_var.txt',
-           n.chains = MCMC.n.chains,
-           n.burnin = MCMC.n.burnin,
-           n.thin = MCMC.n.thin,
-           n.iter = MCMC.n.samples,
-           DIC = T, parallel=T)
+model.file = 'models/model_SSAR1_logY_norm_norm_var.txt'
 
-#g.diag1 <- gelman.diag(jm$samples)
-Rhat <- jm$Rhat
+jags.out <- run.jagsUI(data.jags$jags.data, 
+                       jags.params, 
+                       model.file = model.file, 
+                       MCMC.params)
 
-# extract ys
-ys.stats <- data.frame(low_y = jm$q2.5$y,
-                       median_y = jm$q50$y,
-                       high_y = jm$q97.5$y,
-                       time = data.1.JM$Frac.Year,
-                       obsY = data.1.JM$Nests,
-                       month = data.1.JM$Month,
-                       year = data.1.JM$Year)
+Xs.stats <- jags.out$Xs.stats
 
+Xs.stats$time <- data.jags$data.1$Frac.Year
+Xs.stats$obsY <- data.jags$data.1$Nests
+Xs.stats$month <- data.jags$data.1$Month
+Xs.stats$year <- data.jags$data.1$Year
 
-# extract Xs - the state model
-Xs.stats <- data.frame(low_X = jm$q2.5$X,
-                       median_X = jm$q50$X,
-                       high_X = jm$q97.5$X,
-                       time = data.1.JM$Frac.Year,
-                       obsY = data.1.JM$Nests,
-                       month = data.1.JM$Month,
-                       year = data.1.JM$Year)
+ys.stats <- jags.out$ys.stats
+ys.stats$time <- data.jags$data.1$Frac.Year
+ys.stats$obsY <- data.jags$data.1$Nests
+ys.stats$month <- data.jags$data.1$Month
+ys.stats$year <- data.jags$data.1$Year
 
-Xs.year <- group_by(Xs.stats, year) %>% summarize(median = sum(median_X),
-                                                  low = sum(low_X),
-                                                  high = sum(high_X))
+results <- list(data.1 = data.jags$data.1,
+                jags.out = jags.out,
+                Xs.stats = Xs.stats,
+                ys.stats = ys.stats,
+                MCMC.params = MCMC.params)
 
-loo.out <- pareto.k.diag(jm, MCMC.params, jags.data)
-  
 toc <- Sys.time()
 dif.time <- toc - tic
 
@@ -130,32 +72,36 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = exp(median_X)), color = "red",
             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(low_X)), color = "red",
+            linetype = 2) +
+  
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)
 
+filename.root <- strsplit(strsplit(jags.out$jm$modfile, 
+                                   'models/model_')[[1]][2], '.txt')[[1]][1]
 
-results <- list(data.1 = data.1.JM,
-                jags.data = jags.data,
-                Xs.stats = Xs.stats,
-                Xs.year = Xs.year,
-                ys.stats = ys.stats,
-                tic = tic,
-                toc = toc,
-                dif.time = dif.time,
-                Sys = Sys,
-                MCMC.params = MCMC.params,
-                Rhat = Rhat,
-                jm = jm,
-                loo.out = loo.out)
+if (length(strsplit(filename.root, paste0("SSAR1_", loc, "_"))[[1]]) == 1){
+  
+  filename.out <- paste0(filename.root, "_", loc, "_", year.begin, "_", year.end)
+  
+} else {
+  filename.root <- strsplit(filename.root, paste0("SSAR1_", loc, "_"))[[1]][2]
+  filename.out <- paste0("SSAR1_", filename.root, "_", loc, "_", year.begin, "_", year.end)
+}
+
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_logY_norm_norm_var_1999.png',
+         filename = paste0("figures/", "predicted_counts_", filename.out, ".png"),
          dpi = 600)
 
 if (save.RData)
   saveRDS(results,
-          file = paste0('RData/SSAR1_logY_norm_norm_var_JM_1999_', Sys.Date(), '.rds'))
+          file = paste0('RData/', "jagsout_", 
+                        filename.out, "_", Sys.Date(), '.rds'))
+
 
 if (plot.fig){
   base_theme <- ggplot2::theme_get()
