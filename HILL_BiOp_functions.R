@@ -127,6 +127,8 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
+
+
 extract.posterior.jagsUI <- function(yr, Xs.stats, samples){
   Xs.stats %>%
     mutate(var.name = rownames(Xs.stats)) %>%
