@@ -7,6 +7,7 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("HILL_BiOp_functions.R")
+run.date <- "2018-10-12"
 ```
 
 This document describes how leatherback turtle nest count data were imputed for Jamursba-Medi. All models were ran separately and results stored in .rds files. 
@@ -50,7 +51,10 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ N(x[t], v.obs)
 
 ```{r model1, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_JM_1999_2018-10-12.rds")
+#M <- readRDS("RData/SSAR1_logY_norm_norm_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_JM_1999_2017_",
+                    run.date, ".rds"))
+
 M1.loo.out <- M$loo.out$loo.out
 M1.jm <- M$jm
 ```
@@ -72,7 +76,8 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ N(x[t], v.obs)
 
 ```{r model2, cache=T, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_theta_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_JM_1999_2017_",
+                    run.date, ".rds"))
 M2.loo.out <- M$loo.out$loo.out
 M2.jm <- M$jm
 ```
@@ -93,7 +98,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ N(x[t], v.obs)
 
 ```{r model3, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_var_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_JM_1999_2017_",
+                    run.date, ".rds"))
 M3.loo.out <- M$loo.out$loo.out
 M3.jm <- M$jm
 
@@ -115,7 +121,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ N(x[t], v.obs)
 
 ```{r model4, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_var_theta_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_theta_JM_1999_2017_", run.date, ".rds"))
 M4.loo.out <- M$loo.out$loo.out
 M4.jm <- M$jm
 
@@ -136,7 +142,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ N(x[t], v.obs)
 
 ```{r model5, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_varM_theta_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_JM_1999_2017_",
+             run.date, ".rds"))
 M5.loo.out <- M$loo.out$loo.out
 M5.jm <- M$jm
 
@@ -148,7 +155,6 @@ There were some large estimated Pareto k parameter values, where ```r sum(M5.loo
 plot(M5.loo.out)
 ```
 
-
 In Model 6, a unique slope and variance parameters were given to each month. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -157,7 +163,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ N(x[t], v.obs)
 
 ```{r model6, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_varM_thetaM_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_thetaM_JM_1999_2017_", run.date, ".rds"))
 M6.loo.out <- M$loo.out$loo.out
 M6.jm <- M$jm
 
@@ -181,7 +187,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ N(x[t], v.obs, df)
 
 ```{r model7, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_var_thetaM_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_thetaM_JM_1999_2017_", run.date, ".rds"))
 M7.loo.out <- M$loo.out$loo.out
 M7.jm <- M$jm
 
@@ -193,7 +199,6 @@ There were some large estimated Pareto k parameter values, where ```r sum(M7.loo
 plot(M7.loo.out)
 ```
 
-
 Model 8, a unique slope parameter was given to each month, whereas there was one variance. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -202,7 +207,7 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ N(x[t], v.obs)
 
 ```{r model8, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_norm_thetaM_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_thetaM_JM_1999_2017_", run.date, ".rds"))
 M8.loo.out <- M$loo.out$loo.out
 M8.jm <- M$jm
 ```
@@ -213,7 +218,6 @@ There were some large estimated Pareto k parameter values, where ```r sum(M8.loo
 plot(M8.loo.out)
 ```
 
-
 Model 8 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
 
 m[t] = s + x[t-1]
@@ -223,7 +227,8 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model9, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_JM_1999_2018-10-12.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_JM_1999_2017_",
+                    run.date, ".rds"))
 M9.loo.out <- M$loo.out$loo.out
 M9.jm <- M$jm
 ```
@@ -234,7 +239,6 @@ There were some large estimated Pareto k parameter values, where ```r sum(M9.loo
 plot(M9.loo.out)
 ```
 
-
 Model 10 is similar to the second except observations are modeled with t distribution.  These corresponded to before and after the peak of each nesting season in August. The model is as follows:
 
 m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
@@ -244,7 +248,8 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model10, cache=T, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_theta_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_theta_JM_1999_2017_", 
+                    run.date, ".rds"))
 M10.loo.out <- M$loo.out$loo.out
 M10.jm <- M$jm
 ```
@@ -265,7 +270,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model11, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_var_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_JM_1999_2017_",
+                    run.date, ".rds"))
 M11.loo.out <- M$loo.out$loo.out
 M11.jm <- M$jm
 
@@ -286,7 +292,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ N(x[t], v.obs, df)
 
 ```{r model12, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_var_theta_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_theta_JM_1999_2017_", 
+                    run.date, ".rds"))
 M12.loo.out <- M$loo.out$loo.out
 M12.jm <- M$jm
 
@@ -298,7 +305,6 @@ There were many large estimated Pareto k parameter values, where ```r sum(M12.lo
 plot(M12.loo.out)
 ```
 
-
 In Model 13, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
 m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
 
@@ -307,7 +313,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model13, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_varM_theta_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_theta_JM_1999_2017_", run.date, ".rds"))
 M13.loo.out <- M$loo.out$loo.out
 M13.jm <- M$jm
 
@@ -327,7 +333,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model14, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_varM_thetaM_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_JM_1999_2017_", run.date, ".rds"))
 M14.loo.out <- M$loo.out$loo.out
 M14.jm <- M$jm
 
@@ -348,7 +354,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model15, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_var_thetaM_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_JM_1999_2017_", run.date, ".rds"))
 M15.loo.out <- M$loo.out$loo.out
 M15.jm <- M$jm
 
@@ -368,7 +374,7 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model16, cache=TRUE, include=TRUE}
-M <- readRDS("RData/SSAR1_logY_norm_t_thetaM_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_JM_1999_2017_", run.date, ".rds"))
 M16.loo.out <- M$loo.out$loo.out
 M16.jm <- M$jm
 
@@ -412,7 +418,7 @@ The slope parameters indicated increasing trend to July and decreased from Augus
 We use this model to impute missing data points.
 
 ```{r}
-M <- readRDS("RData/SSAR1_logY_norm_t_thetaM_JM_1999_2018-10-13.rds")
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_JM_1999_2017_", run.date, ".rds"))
 M16.loo.out <- M$loo.out$loo.out
 M16.jm <- M$jm
 Xs.stats <- M$Xs.stats
