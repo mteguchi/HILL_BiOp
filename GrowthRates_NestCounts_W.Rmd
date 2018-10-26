@@ -10,7 +10,7 @@ rm(list=ls())
 source("HILL_BiOp_functions.R")
 library(reshape2)
 library(ggridges)
-run.date1 <- "2018-10-23"
+run.date1 <- "2018-10-26"
 
 M17 <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2017_",
                       run.date1, ".rds"))
@@ -97,4 +97,12 @@ ggsave(plot = p.lambda.winter,
 ```
 
 
-Then, plot as
+
+```{r}
+print(p.lambda.summer)
+```
+
+```{r}
+print(p.lambda.winter)
+```
+

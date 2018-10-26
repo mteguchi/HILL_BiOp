@@ -7,7 +7,7 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("HILL_BiOp_functions.R")
-run.date <- "2018-10-23"
+run.date <- "2018-10-26"
 run.date1 <- "2018-10-24"
 ```
 
@@ -124,7 +124,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, 2, ..., 12
 y[t] ~ N(x[t], v.obs)
 
 ```{r model3, cache=TRUE, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_JM_1999_2017_",
                     run.date, ".rds"))
 M3.loo.out <- M$jags.out$loo.out$loo.out
 M3.jm <- M$jags.out$jm
@@ -138,7 +138,8 @@ plot(M3.loo.out)
 ```
 
 
-The fourth model is similar to the first except there were two slope parameters: one for January through July and another for August through December. These corresponded to before and after the peak of each nesting season in August. The model is as follows:
+
+The fourth model is similar to the first except there were two slope parameters: one for January through July and another for August through December. These corresponded to before and after the peak of each nesting season in August. There is only one variance. The model is as follows:
 
 m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
 
@@ -157,6 +158,21 @@ Diagnostics of the expected log predictive density indicated that the model was 
 
 ```{r PSIS_M4, fig.cap="Figure. PSIS diagnostic plot for M4"}
 plot(M4.loo.out)
+```
+
+The compasion of the four models above (M1 through M4) indicated the slope parameter needs not to be constant, which was obvious from the beginning... Variance, however, does not affect the predictive performance. 
+
+```{r}
+pareto.k <- M4.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 The fifth model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April)
@@ -180,6 +196,19 @@ There were some large estimated Pareto k parameter values, where ```r sum(M5.loo
 plot(M5.loo.out)
 ```
 
+```{r}
+pareto.k <- M5.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 In Model 6, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
 m[t] = s[t] + x[t-1], s[t] = s1 if Jan <= month < 8, s2 otherwise.
 
@@ -201,6 +230,21 @@ There were some large estimated Pareto k parameter values, where ```r sum(M6.loo
 plot(M6.loo.out)
 ```
 
+So, having a flexibility in variance does not help preditive performance for this dataset. 
+
+```{r}
+pareto.k <- M6.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 Model 7, a unique slope parameter was given to each month, whereas there was one variance. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -218,6 +262,21 @@ There were some large estimated Pareto k parameter values, where ```r sum(M7.loo
 
 ```{r PSIS_M7, fig.cap="Figure. PSIS diagnostic plot for M7"}
 plot(M7.loo.out)
+```
+
+Having one variance, instead of two or more seems to help the predictive performance.
+
+```{r}
+pareto.k <- M7.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 In Model 8, a unique slope parameter was given to each month, whereas there were two variance2. 
@@ -240,6 +299,22 @@ There were some large estimated Pareto k parameter values, where ```r sum(M8.loo
 plot(M8.loo.out)
 ```
 
+Again, with two variances, the predictive performance is poor.
+
+```{r}
+pareto.k <- M8.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
+
 In Model 9, a unique slope and variance parameters were given to each month. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -258,6 +333,19 @@ There were some large estimated Pareto k parameter values, where ```r sum(M9.loo
 
 ```{r PSIS_M9, fig.cap="Figure. PSIS diagnostic plot for M9"}
 plot(M9.loo.out)
+```
+
+```{r}
+pareto.k <- M9.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 Model 10 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
@@ -281,6 +369,19 @@ There were some large estimated Pareto k parameter values, where ```r sum(M10.lo
 plot(M10.loo.out)
 ```
 
+```{r}
+pareto.k <- M10.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 The next model contained one slope and two variances: one for nesting season (May through September) and another for the non-nesting season (October through April) and t distribution for observations. 
 
 m[t] = s + x[t-1] 
@@ -301,6 +402,19 @@ Similary to the first model, all estimated Pareto k statistics were greater than
 
 ```{r PSIS_M11, fig.cap="Figure. PSIS diagnostic plot for M11."} 
 plot(M11.loo.out)
+```
+
+```{r}
+pareto.k <- M11.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 Model 12 has a constant slope and month-specific variances. The model is as follows:
@@ -326,6 +440,18 @@ The vast majority of estimated Pareto k parameter was greater than 0.7 (```r sum
 plot(M12.loo.out)
 ```
 
+```{r}
+pareto.k <- M12.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
 
 Model 13 is similar to the second except observations are modeled with t distribution.  These corresponded to before and after the peak of each nesting season in August. The model is as follows:
 
@@ -343,10 +469,23 @@ M13.loo.out <- M$jags.out$loo.out$loo.out
 M13.jm <- M$jags.out$jm
 ```
 
-The vast majority of estimated Pareto k parameter was less than 0.7 (```r sum(M13.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M13.loo.out$diagnostics$pareto_k)```. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = max, na.rm = T))), 3)```).  
+All estimated Pareto k parameter was less than 0.7 (```r sum(M13.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M13.loo.out$diagnostics$pareto_k)```. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M13.jm$Rhat, FUN = max, na.rm = T))), 3)```).  
 
 ```{r PSIS_M13, fig.cap="Figure. PSIS diagnostic plot for M13"}
 plot(M13.loo.out)
+```
+
+```{r}
+pareto.k <- M13.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 Next model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April). Observations are modeled with t distribution.
@@ -365,10 +504,23 @@ M14.jm <- M$jags.out$jm
 
 ```
 
-There were many large estimated Pareto k parameter values, where ```r sum(M14.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M14.loo.out$diagnostics$pareto_k)``` were larger than 0.7.  Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+There were some large estimated Pareto k parameter values, where ```r sum(M14.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M14.loo.out$diagnostics$pareto_k)``` were larger than 0.7.  Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M14.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M14, fig.cap="Figure. PSIS diagnostic plot for M14."}
 plot(M14.loo.out)
+```
+
+```{r}
+pareto.k <- M14.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 In Model 15, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
@@ -385,10 +537,23 @@ M15.jm <- M$jags.out$jm
 
 ```
 
-There were some large estimated Pareto k parameter values, where ```r sum(M15.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M15.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+Almost all estimated Pareto k parameter values were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M15.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M15, fig.cap="Figure. PSIS diagnostic plot for M15."}
 plot(M15.loo.out)
+```
+
+```{r}
+pareto.k <- M15.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 In Model 16, a unique slope parameter was given to each month, whereas there was one variance. 
@@ -399,7 +564,8 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model16, cache=TRUE, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_JM_1999_2017_", run.date1, ".rds"))
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_JM_1999_2017_",
+                    run.date, ".rds"))
 M16.loo.out <- M$jags.out$loo.out$loo.out
 M16.jm <- M$jags.out$jm
 
@@ -411,6 +577,19 @@ There were some large estimated Pareto k parameter values, where ```r sum(M16.lo
 plot(M16.loo.out)
 ```
 
+```{r}
+pareto.k <- M16.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 In Model 17, a unique slope parameter was given to each month, whereas there were two variances. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -419,7 +598,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if May <= month < September, v2 otherwis
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model17, cache=TRUE, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_JM_1999_2017_", run.date1, ".rds"))
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_JM_1999_2017_",
+                    run.date, ".rds"))
 M17.loo.out <- M$jags.out$loo.out$loo.out
 M17.jm <- M$jags.out$jm
 
@@ -431,6 +611,19 @@ There were many large estimated Pareto k parameter values, where ```r sum(M17.lo
 plot(M17.loo.out)
 ```
 
+```{r}
+pareto.k <- M17.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 In Model 18, a unique slope and variance parameters were given to each month. 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
 
@@ -439,7 +632,8 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v.pro[month], month = 1, ..., 12
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model18, cache=TRUE, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_JM_1999_2017_", run.date, ".rds"))
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_JM_1999_2017_",
+                    run.date, ".rds"))
 M18.loo.out <- M$jags.out$loo.out$loo.out
 M18.jm <- M$jags.out$jm
 
@@ -451,11 +645,25 @@ There were some large estimated Pareto k parameter values, where ```r sum(M18.lo
 plot(M18.loo.out)
 ```
 
+```{r}
+pareto.k <- M18.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 #Model Comparison
 Estimated Pareto k statistics indicated that models 4, 7, 13, 14, and 16 had acceptable predictive performance. We compared these models using using ELPD values.
 
 ```{r ModelComparison, include=TRUE}
-M.compare <- compare(M4.loo.out, M7.loo.out, M13.loo.out, M14.loo.out, M16.loo.out)
+M.compare <- compare(M4.loo.out, M7.loo.out, M13.loo.out, 
+                     M14.loo.out, M16.loo.out)
 print(M.compare)
 ```
 
