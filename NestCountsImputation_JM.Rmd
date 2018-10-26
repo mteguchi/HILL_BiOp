@@ -8,7 +8,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("HILL_BiOp_functions.R")
 run.date <- "2018-10-26"
-run.date1 <- "2018-10-24"
+#run.date1 <- "2018-10-24"
 ```
 
 This document describes how leatherback turtle nest count data were imputed for Jamursba-Medi. All models were ran separately and results stored in .rds files. 
@@ -429,7 +429,7 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model12, cache=T, include=TRUE}
 
 M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_JM_1999_2017_", 
-                    run.date1, ".rds"))
+                    run.date, ".rds"))
 M12.loo.out <- M$jags.out$loo.out$loo.out
 M12.jm <- M$jags.out$jm
 ```

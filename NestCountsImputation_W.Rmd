@@ -95,7 +95,7 @@ Looking at which data points resulted in high Pareto k values...
 ```{r}
 pareto.k <- M1.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.out$jags.data$y)
-# first log likelihood value is NA... why's that? but I'll worry about that later.
+
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)))
@@ -132,7 +132,7 @@ plot(M2.loo.out)
 ```{r}
 pareto.k <- M2.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.out$jags.data$y)
-# first log likelihood value is NA... why's that? but I'll worry about that later.
+
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)))
@@ -150,7 +150,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v[month], month = 1, 2, ..., 12
 
 y[t] ~ N(x[t], v.obs)
 
-```{r model2, cache=TRUE, include=TRUE}
+```{r model3, cache=TRUE, include=TRUE}
 M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_W_2006_2014_", run.date, ".rds"))
 M3.loo.out <- M$jags.out$loo.out$loo.out
 M3.jm <- M$jags.out$jm
@@ -166,7 +166,7 @@ plot(M3.loo.out)
 ```{r}
 pareto.k <- M3.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.out$jags.data$y)
-# first log likelihood value is NA... why's that? but I'll worry about that later.
+
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)))
@@ -201,13 +201,23 @@ plot(M4.loo.out)
 ```{r}
 pareto.k <- M4.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.out$jags.data$y)
-# first log likelihood value is NA... why's that? but I'll worry about that later.
+
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
+                        X.mean = M4.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M4.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M4.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
                         datapoint = seq(from = 1, to = length(data.y)))
+
+
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
 
 ```
 
@@ -279,13 +289,23 @@ plot(M7.loo.out)
 ```{r}
 pareto.k <- M7.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.out$jags.data$y)
-# first log likelihood value is NA... why's that? but I'll worry about that later.
+
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
+                        X.mean = M7.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M7.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M7.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
                         datapoint = seq(from = 1, to = length(data.y)))
+
+
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
 
 ```
 
@@ -311,6 +331,30 @@ There were some large estimated Pareto k parameter values, where ```r sum(M8.loo
 plot(M8.loo.out)
 ```
 
+```{r}
+pareto.k <- M8.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M8.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M8.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M8.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
+```
+
+
 ##Model 9
 In Model 9, a unique slope and variance parameters were given to each month. 
 
@@ -333,6 +377,18 @@ Majority of estimated Pareto k parameters were large, where ```r sum(M9.loo.out$
 plot(M9.loo.out)
 ```
 
+```{r}
+pareto.k <- M9.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
 
 ##Model 10
 Model 10 is similar to Model 1 but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
@@ -355,6 +411,18 @@ There were some large estimated Pareto k parameter values, where ```r sum(M10.lo
 plot(M10.loo.out)
 ```
 
+```{r}
+pareto.k <- M10.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
 
 ##Model 11
 The next model contained one slope and two variances: one for September and October and another for the remainder of the year. t distribution was used for observations. 
@@ -378,6 +446,19 @@ Majority of estimated Pareto k statistics were greater than 0.7. Convergence sta
 plot(M11.loo.out)
 ```
 
+```{r}
+pareto.k <- M11.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 ##Model 12
 Model 12 has a constant slope and month-specific variance.  
 
@@ -387,7 +468,7 @@ x[t] ~ N(m[t], v.pro[t]), where v.pro[t] = v[month], month = 1, 2, ..., 12
 
 y[t] ~ t(x[t], v.obs, df)
 
-```{r model13, cache=T, include=TRUE}
+```{r model12, cache=T, include=TRUE}
 M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_W_2006_2014_", run.date, ".rds"))
 M12.loo.out <- M$jags.out$loo.out$loo.out
 M12.jm <- M$jags.out$jm
@@ -397,6 +478,29 @@ Many of estimated Pareto k parameter was greater than 0.7 (```r sum(M12.loo.out$
 
 ```{r PSIS_M12, fig.cap="Figure. PSIS diagnostic plot for M12"}
 plot(M12.loo.out)
+```
+
+```{r}
+pareto.k <- M12.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M12.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M12.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M12.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
 ```
 
 
@@ -421,6 +525,30 @@ Many of estimated Pareto k parameter was greater than 0.7 (```r sum(M13.loo.out$
 plot(M13.loo.out)
 ```
 
+```{r}
+pareto.k <- M13.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M13.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M13.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M13.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
+```
+
+
 ##Model 14
 Next model contained two slopes and two variances: one slope for January through July and another slope for August through December and one variance for nesting season (May through September) and another variance for the non-nesting season (October through April). Observations are modeled with t distribution.
 
@@ -430,7 +558,7 @@ x[t] ~ N(m[t], v.pro[t]), v.pro[t] = v1 if month = 9 or 10, v2 otherwise.
 
 y[t] ~ N(x[t], v.obs, df)
 
-```{r model12, cache=TRUE, include=TRUE}
+```{r model14, cache=TRUE, include=TRUE}
 M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_theta_W_2006_2014_", run.date, ".rds"))
 M14.loo.out <- M$jags.out$loo.out$loo.out
 M14.jm <- M$jags.out$jm
@@ -441,6 +569,29 @@ There were many large estimated Pareto k parameter values, where ```r sum(M14.lo
 
 ```{r PSIS_M14}
 plot(M14.loo.out)
+```
+
+```{r}
+pareto.k <- M14.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M14.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M14.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M14.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
 ```
 
 ##Model 15
@@ -465,6 +616,27 @@ There were many large estimated Pareto k parameter values, where ```r sum(M15.lo
 plot(M15.loo.out)
 ```
 
+```{r}
+pareto.k <- M15.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M15.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M15.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M15.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
+```
 
 ##Model 16
 In Model 16, a unique slope parameter was given to each month, whereas there was one variance. 
@@ -476,7 +648,8 @@ x[t] ~ N(m[t], v.pro),
 y[t] ~ t(x[t], v.obs, df)
 
 ```{r model16, cache=TRUE, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_W_2006_2014_", run.date, ".rds"))
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_W_2006_2014_",
+                    run.date, ".rds"))
 M16.loo.out <- M$jags.out$loo.out$loo.out
 M16.jm <- M$jags.out$jm
 
@@ -486,6 +659,29 @@ Several large estimated Pareto k parameter values were found, where ```r sum(M16
 
 ```{r PSIS_M16, fig.cap="Figure. PSIS diagnostic plot for M16."}
 plot(M16.loo.out)
+```
+
+```{r}
+pareto.k <- M16.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M16.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M16.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M16.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
 ```
 
 
@@ -511,6 +707,28 @@ There were some large estimated Pareto k parameter values, where ```r sum(M17.lo
 plot(M17.loo.out)
 ```
 
+```{r}
+pareto.k <- M17.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M17.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M17.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M17.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+```
+
 ##Model 18
 In Model 18, a unique slope and variance parameters were given to each month. 
 
@@ -533,6 +751,28 @@ There were many large estimated Pareto k parameter values, where ```r sum(M18.lo
 plot(M18.loo.out)
 ```
 
+```{r}
+pareto.k <- M18.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        X.mean = M18.jm$mean$X[!is.na(M$jags.out$jags.data$y)],
+                        X.low = M18.jm$q2.5$X[!is.na(M$jags.out$jags.data$y)],
+                        X.high = M18.jm$q97.5$X[!is.na(M$jags.out$jags.data$y)],
+                        datapoint = seq(from = 1, to = length(data.y)))
+
+
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(X.mean)), 
+             color = "red", alpha = 0.6) + 
+  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
+                color = "red")+
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  labs(x = "Data point", y = "Nest count")
+
+```
 
 #Model comparison
 Estimated Pareto k statistics indicated that models 4, 7, 13, 16, and 17 had better predictive performance than the rest. We compared these models using using ELPD values.

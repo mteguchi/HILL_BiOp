@@ -71,18 +71,23 @@ winter.lambda.df %>% melt(value.name = "lambda",
                           variable.name = "Year") -> winter.df
 
 ```
-Compute the change in counts over time for each period:
+
+Unrealistic values are eliminated.
+
 ```{r}
 # need to restrain the crazy "increase" observed for the 2016...
 summer.df$lambda[summer.df$lambda > 3] <- NA
 winter.df$lambda[winter.df$lambda > 3] <- NA
 p.lambda.summer <- ggplot(data = summer.df) + 
   geom_density_ridges2(aes(y = Year, x = lambda),
-                       fill = "red")
+                       fill = "red") + 
+  labs(title = "Summer", x = "Change in counts (x[t]/x[t-1])")
 
 p.lambda.winter <- ggplot(data = winter.df) + 
   geom_density_ridges2(aes(y = Year, x = lambda),
-                       fill = "red")
+                       fill = "red")+ 
+  labs(title = "Winter", x = "Change in counts (x[t]/x[t-1])")
+
 
 ggsave(plot = p.lambda.summer,
        filename = "figures/W_summer_lambda.png",
@@ -95,7 +100,6 @@ ggsave(plot = p.lambda.winter,
        dpi = 600)
 
 ```
-
 
 
 ```{r}
