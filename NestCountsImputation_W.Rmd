@@ -14,6 +14,27 @@ run.date1 <- "2018-10-23"
 
 This document describes how leatherback turtle nest count data were imputed for Wermon. All models were ran separately and results stored in .rds files. 
 
+The raw data look like this.
+```{r}
+year.begin <- 2006
+year.end <- 2017
+loc <- "W"
+data.jags <- data.extract(location = loc, 
+                          year.begin = year.begin, 
+                          year.end = year.end)
+p.0 <- ggplot() +
+  geom_point(data = data.jags$data.1,
+             aes(x = Frac.Year, y = Nests)) + 
+  geom_path(data = data.jags$data.1,
+            aes(x = Frac.Year, y = Nests))
+print(p.0)
+#ggsave(plot = p.0,
+#       filename = "figures/data_W.png",
+#       device = "png",
+#       dpi = 600)
+```
+
+
 We use the Bayesian state-space approach, where the mean of the state process is modeled with an auto-regressive model with time lag of one step (AR(1)). 
 
 M[t] = S[t] * X[t-1]
@@ -68,6 +89,23 @@ Diagnostics of the expected log predictive density indicated that the model had 
 plot(M1.loo.out)
 ```
 
+Looking at which data points resulted in high Pareto k values...
+
+```{r}
+pareto.k <- M1.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+# first log likelihood value is NA... why's that? but I'll worry about that later.
+pareto.df <- data.frame(y = data.y[2:length(data.y)],
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = (length(data.y) - 1)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
+The worst offender seems to be an extreme point... 
+
 ##Model 2
 The next model contained one slope and two variances: one for September and October and another for the rest of the year (this was decided after looking at posteriors of variances when each month was given unique variance parameter - I think...). 
 
@@ -90,6 +128,18 @@ Almost all estimated Pareto k statistics were greater than 0.7. Convergence stat
 plot(M2.loo.out)
 ```
 
+```{r}
+pareto.k <- M2.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+# first log likelihood value is NA... why's that? but I'll worry about that later.
+pareto.df <- data.frame(y = data.y[2:length(data.y)],
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = (length(data.y) - 1)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
 ##Model 3
 The next model contained one slope and month-specific variances. 
 
@@ -111,6 +161,20 @@ Almost all estimated Pareto k statistics were greater than 0.7. Convergence stat
 ```{r PSIS_M3, fig.cap="Figure. PSIS diagnostic plot for M3"}
 plot(M3.loo.out)
 ```
+
+```{r}
+pareto.k <- M3.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+# first log likelihood value is NA... why's that? but I'll worry about that later.
+pareto.df <- data.frame(y = data.y[2:length(data.y)],
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = (length(data.y) - 1)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
+
 ##Model 4
 The next model is similar to the first except there were two slope parameters: one for April through July and October through December (increasing months) and another for the remainder: January through March August through September (decreasing months). The model is as follows:
 
@@ -121,7 +185,8 @@ x[t] ~ N(m[t], v.pro)
 y[t] ~ N(x[t], v.obs)
 
 ```{r model4, cache=T, include=TRUE}
-M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_", run.date, ".rds"))
+M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_", 
+                    run.date, ".rds"))
 M4.loo.out <- M$jags.out$loo.out$loo.out
 M4.jm <- M$jags.out$jm
 ```
@@ -132,6 +197,18 @@ Diagnostics of the expected log predictive density indicated that the model was 
 plot(M4.loo.out)
 ```
 
+```{r}
+pareto.k <- M4.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+# first log likelihood value is NA... why's that? but I'll worry about that later.
+pareto.df <- data.frame(y = data.y[2:length(data.y)],
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = (length(data.y) - 1)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
+```
 
 ##Model 5
 The fifth model contained two slopes and two variances: combination of Model 2 and Model 3.
@@ -196,6 +273,19 @@ There were some large estimated Pareto k parameter values, where ```r sum(M7.loo
 
 ```{r PSIS_M7, fig.cap="Figure. PSIS diagnostic plot for M7"}
 plot(M7.loo.out)
+```
+
+```{r}
+pareto.k <- M7.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.out$jags.data$y)
+# first log likelihood value is NA... why's that? but I'll worry about that later.
+pareto.df <- data.frame(y = data.y[2:length(data.y)],
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = (length(data.y) - 1)))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+
 ```
 
 ##Model 8
@@ -581,6 +671,10 @@ p.1 <- ggplot() +
   labs(title = "Wermon", y = "Nest counts", x = "Time")
 
 print(p.1)
+ggsave(plot = p.1,
+       filename = "figures/estimated_counts_W.png",
+       device = "png",
+       dpi = 600)
 ```
 
 Split between summer and winter. 
@@ -648,6 +742,10 @@ p.W.estimated.counts <- ggplot() +
   labs(title = 'Wermon', x = 'Season', y = "Nest counts")
 
 print(p.W.estimated.counts)
+# ggsave(plot = p.W.estimated.counts,
+#        filename = "figures/estimated_counts_perSeason_W.png",
+#        device = "png",
+#        dpi = 600)
 
 write.csv(Xs.season, file = "data/estimatedX_M17.csv",
           quote = F, row.names = F)

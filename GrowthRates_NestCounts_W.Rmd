@@ -1,0 +1,100 @@
+---
+title: "Nest count rates of change-Wermon"
+output: html_notebook
+---
+
+Computes rates of change in counts of nests at Wermon nesting beach for each season.
+
+```{r}
+rm(list=ls())
+source("HILL_BiOp_functions.R")
+library(reshape2)
+library(ggridges)
+run.date1 <- "2018-10-23"
+
+M17 <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2017_",
+                      run.date1, ".rds"))
+
+M17$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+
+M17$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
+
+seasons <- as.matrix(unique(Xs.stats$season))
+
+X.posterior.seasons <- lapply(apply(seasons, 
+                                    MARGIN = 1,
+                                    FUN = extract.posterior.jagsUI, 
+                                    Xs.stats = Xs.stats, 
+                                    samples = M17$jags.out$jm$samples),
+                              FUN = function(x){
+                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
+                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
+                                return(data.frame(summer = n.summer, winter = n.winter))
+                              } )
+
+```
+
+Split into summer and winter;
+
+```{r}
+summer.samples <- matrix(unlist(lapply(X.posterior.seasons,
+                                       FUN = function(x) x$summer)),
+                         ncol = length(X.posterior.seasons))
+
+winter.samples <- matrix(unlist(lapply(X.posterior.seasons,
+                                       FUN = function(x) x$winter)),
+                         ncol = length(X.posterior.seasons))
+
+# not enough data for 2005
+summer.samples <- summer.samples[, 2:ncol(summer.samples)]
+winter.samples <- winter.samples[, 2:ncol(winter.samples)]
+
+# compute the rate of annual change
+summer.lambda <- t(apply(summer.samples,
+                         FUN = function(x) x[2:length(x)]/x[1:(length(x) - 1)],
+                         MARGIN = 1))
+
+winter.lambda <- t(apply(winter.samples,
+                         FUN = function(x) x[2:length(x)]/x[1:(length(x) - 1)],
+                         MARGIN = 1))
+summer.lambda.df <- as.data.frame(summer.lambda) 
+colnames(summer.lambda.df) <- 2007:2017
+
+winter.lambda.df <- as.data.frame(winter.lambda)
+colnames(winter.lambda.df) <- 2007:2017
+
+summer.lambda.df %>% melt(value.name = "lambda", 
+                          variable.name = "Year") -> summer.df
+winter.lambda.df %>% melt(value.name = "lambda", 
+                          variable.name = "Year") -> winter.df
+
+```
+Compute the change in counts over time for each period:
+```{r}
+# need to restrain the crazy "increase" observed for the 2016...
+summer.df$lambda[summer.df$lambda > 3] <- NA
+winter.df$lambda[winter.df$lambda > 3] <- NA
+p.lambda.summer <- ggplot(data = summer.df) + 
+  geom_density_ridges2(aes(y = Year, x = lambda),
+                       fill = "red")
+
+p.lambda.winter <- ggplot(data = winter.df) + 
+  geom_density_ridges2(aes(y = Year, x = lambda),
+                       fill = "red")
+
+ggsave(plot = p.lambda.summer,
+       filename = "figures/W_summer_lambda.png",
+       device = "png",
+       dpi = 600)
+
+ggsave(plot = p.lambda.winter,
+       filename = "figures/W_winter_lambda.png",
+       device = "png",
+       dpi = 600)
+
+```
+
+
+Then, plot as

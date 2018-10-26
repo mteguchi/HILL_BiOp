@@ -3,10 +3,10 @@
 rm(list=ls())
 
 source('HILL_BiOp_functions.R')
-# library(jagsUI)
-# library(coda)
+library(jagsUI)
+library(coda)
 # library(ggplot2)
-# library(loo)
+library(loo)
 
 save.RData <- T
 save.fig <- T
