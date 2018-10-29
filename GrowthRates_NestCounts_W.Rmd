@@ -81,11 +81,13 @@ winter.df$lambda[winter.df$lambda > 3] <- NA
 p.lambda.summer <- ggplot(data = summer.df) + 
   geom_density_ridges2(aes(y = Year, x = lambda),
                        fill = "red") + 
+  geom_vline(xintercept = 1.0) +  
   labs(title = "Summer", x = "Change in counts (x[t]/x[t-1])")
 
 p.lambda.winter <- ggplot(data = winter.df) + 
   geom_density_ridges2(aes(y = Year, x = lambda),
                        fill = "red")+ 
+  geom_vline(xintercept = 1.0) +  
   labs(title = "Winter", x = "Change in counts (x[t]/x[t-1])")
 
 

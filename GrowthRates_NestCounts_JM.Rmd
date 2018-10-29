@@ -1,0 +1,81 @@
+---
+title: "JM population growth computation"
+output: html_notebook
+---
+
+```{r}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source("HILL_BiOp_functions.R")
+library(ggridges)
+library(reshape2)
+run.date <- "2018-10-26"
+```
+
+This document uses the best model from NestCountsImputatoin_JM.Rmd to compute the annual change in nest counts over the time period (Nt/Nt-1). The best model was determined as Model 7.
+
+```{r}
+M7 <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_thetaM_JM_1999_2017_", run.date, ".rds"))
+M7.loo.out <- M7$jags.out$loo.out$loo.out
+M7.jm <- M7$jags.out$jm
+
+Xs.stats <- M7$Xs.stats
+ys.stats <- M7$ys.stats
+Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) -> ys.stats
+
+seasons <- as.matrix(unique(Xs.stats$season))
+
+X.posterior.season <- lapply(apply(seasons, 
+                                   MARGIN = 1,
+                                   FUN = extract.posterior.jagsUI, 
+                                   Xs.stats = Xs.stats, 
+                                   samples = M7.jm$samples),
+                             FUN = function(x) exp(x$samples) %>% rowSums())
+
+Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.season, 
+                                              FUN = quantile,
+                                              c(0.025, 0.5, 0.975))),
+                                ncol = 3, byrow = T)) 
+colnames(Xs.season) <- c("low", "median", "high")
+Xs.season <-mutate(Xs.season, 
+                   season = seasons)
+
+ys.stats %>% group_by(season) %>%
+  summarize(obs = sum(obsY, na.rm = T)) -> ys.season
+
+```
+
+Then use the posterior samples to compute how the numbers changed. First remove the first one because it contains only three months. 
+
+```{r}
+
+X.posterior.season <- X.posterior.season[2:length(X.posterior.season)]
+X.mat <- matrix(unlist(X.posterior.season), 
+                ncol = length(X.posterior.season), 
+                byrow = F)
+
+t.steps <- ncol(X.mat)
+lambda.t <- apply(X.mat, MARGIN = 1,
+                  FUN = function(x) x[2:t.steps]/x[1:(t.steps - 1)])
+
+lambda.t.df <- data.frame(t(lambda.t)) 
+colnames(lambda.t.df) <- 2000:2017
+lambda.t.df2 <- melt(lambda.t.df, value.name = "lambda") 
+colnames(lambda.t.df2) <- c("Year", "lambda")
+
+p.1 <- ggplot(data = lambda.t.df2) + 
+  geom_density_ridges2(aes(y = Year, x = lambda),
+                       fill = "red") + 
+  geom_vline(xintercept = 1.0) + 
+  labs(x = "x[t]/x[t-1]")
+
+ggsave(filename = "figures/growth_rate_JM.png",
+       device = "png", 
+       plot = p.1,
+       dpi = 600)
+
+print(p.1)
+
+```
