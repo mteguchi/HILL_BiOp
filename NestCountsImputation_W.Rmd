@@ -69,7 +69,7 @@ Initial analyses indicated that missing data for 2014 and 2015 resulted in poor 
 
 #Model selection using 2006-2014 data
 ##Model 1
-First model is the simplest; the state space is modeled with NOrmal distribution and observation is modeled also with normal distribution. No seasonal change in variance or slope is considered. Then, the model definitions become the following:
+First model is the simplest; the state space is modeled with Normal distribution and observation is modeled also with normal distribution. No seasonal change in variance or slope is considered. Then, the model definitions become the following:
 
 m[t] = s + x[t-1]
 
@@ -101,11 +101,11 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 
-The worst offender seems to be an extreme point... 
+The worst offendes seem to be at the lowest or highest points.  
 
 ##Model 2
 The next model contained one slope and two variances: one for September and October and another for the rest of the year (this was decided after looking at posteriors of variances when each month was given unique variance parameter - I think...). 
@@ -138,7 +138,7 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 ##Model 3
@@ -172,7 +172,7 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 
@@ -212,11 +212,13 @@ pareto.df <- data.frame(y = data.y,
 
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(X.mean)), 
-             color = "red", alpha = 0.6) + 
-  geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
-                color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  # geom_point(aes(x = datapoint, y = exp(X.mean)), 
+  #            color = "red", alpha = 0.6) + 
+  # geom_errorbar(aes(x = datapoint, 
+  #                   ymin = exp(X.low), 
+  #                   ymax = exp(X.high)),
+  #               color = "red") +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -304,7 +306,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -349,7 +351,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), color = size)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -386,7 +388,7 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 
@@ -420,7 +422,7 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 
@@ -455,7 +457,7 @@ pareto.df <- data.frame(y = data.y,
                         datapoint = seq(from = 1, to = length(data.y)))
 ggplot(data = pareto.df) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) 
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) 
 
 ```
 
@@ -498,7 +500,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -543,7 +545,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -589,7 +591,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -633,7 +635,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -679,7 +681,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
@@ -725,7 +727,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 ```
 
@@ -769,7 +771,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = khat)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
