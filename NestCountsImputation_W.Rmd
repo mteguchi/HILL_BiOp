@@ -351,7 +351,7 @@ ggplot(data = pareto.df) +
              color = "red", alpha = 0.6) + 
   geom_errorbar(aes(x = datapoint, ymin = exp(X.low), ymax = exp(X.high)),
                 color = "red")+
-  geom_point(aes(x = datapoint, y = exp(y), color = size)) +
+  geom_point(aes(x = datapoint, y = exp(y), size = khat)) +
   labs(x = "Data point", y = "Nest count")
 
 ```
